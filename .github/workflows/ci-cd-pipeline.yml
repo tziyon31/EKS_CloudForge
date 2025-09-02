@@ -178,7 +178,7 @@ jobs:
           exit-code: ${{ env.TRIVY_EXIT_CODE }}
       
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
@@ -253,7 +253,7 @@ jobs:
           exit-code: ${{ env.TRIVY_EXIT_CODE }}
       
       - name: Upload Docker scan results
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-image-results.sarif'
