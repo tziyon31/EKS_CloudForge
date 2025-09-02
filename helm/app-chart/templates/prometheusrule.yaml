@@ -1,0 +1,128 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "eks-cloudforge-app.fullname" . }}-rules
+  labels:
+    {{- include "eks-cloudforge-app.labels" . | nindent 4 }}
+    app: eks-cloudforge-app
+    prometheus: kube-prometheus
+    role: alert-rules
+  annotations:
+    cost-center: "monitoring"
+    monitoring: "true"
+spec:
+  groups:
+    - name: eks-cloudforge-app
+      interval: 30s
+      rules:
+        # High CPU Usage Alert
+        - alert: HighCPUUsage
+          expr: rate(container_cpu_usage_seconds_total{container="eks-cloudforge-app"}[5m]) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            cost-center: "monitoring"
+            instance-type: "t3-micro"
+          annotations:
+            summary: "High CPU usage detected"
+            description: "Container {{ $labels.container }} has high CPU usage: {{ $value }}%"
+            cost_impact: "May trigger auto-scaling and increase costs"
+            runbook_url: "https://github.com/your-repo/runbooks/high-cpu-usage"
+        
+        # High Memory Usage Alert
+        - alert: HighMemoryUsage
+          expr: container_memory_usage_bytes{container="eks-cloudforge-app"} > 800000000
+          for: 5m
+          labels:
+            severity: warning
+            cost-center: "monitoring"
+            instance-type: "t3-micro"
+          annotations:
+            summary: "High memory usage detected"
+            description: "Container {{ $labels.container }} has high memory usage: {{ $value | humanize }}B"
+            cost_impact: "May trigger auto-scaling and increase costs"
+            runbook_url: "https://github.com/your-repo/runbooks/high-memory-usage"
+        
+        # Pod Down Alert
+        - alert: PodDown
+          expr: up{job="eks-cloudforge-app"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            cost-center: "monitoring"
+            instance-type: "t3-micro"
+          annotations:
+            summary: "Pod is down"
+            description: "Pod {{ $labels.pod }} is down"
+            cost_impact: "Service unavailable - potential revenue loss"
+            runbook_url: "https://github.com/your-repo/runbooks/pod-down"
+        
+        # High Response Time Alert
+        - alert: HighResponseTime
+          expr: rate(http_request_duration_seconds_sum{job="eks-cloudforge-app"}[5m]) / rate(http_request_duration_seconds_count{job="eks-cloudforge-app"}[5m]) > 2
+          for: 5m
+          labels:
+            severity: warning
+            cost-center: "monitoring"
+            instance-type: "t3-micro"
+          annotations:
+            summary: "High response time detected"
+            description: "Response time is high for {{ $labels.instance }}: {{ $value }}s"
+            cost_impact: "Poor user experience may affect business"
+            runbook_url: "https://github.com/your-repo/runbooks/high-response-time"
+        
+        # High Error Rate Alert
+        - alert: HighErrorRate
+          expr: rate(http_requests_total{job="eks-cloudforge-app", status=~"5.."}[5m]) / rate(http_requests_total{job="eks-cloudforge-app"}[5m]) * 100 > 5
+          for: 5m
+          labels:
+            severity: warning
+            cost-center: "monitoring"
+            instance-type: "t3-micro"
+          annotations:
+            summary: "High error rate detected"
+            description: "Error rate is high: {{ $value }}%"
+            cost_impact: "Service quality issues may affect business"
+            runbook_url: "https://github.com/your-repo/runbooks/high-error-rate"
+        
+        # High Cost Alert
+        - alert: HighCost
+          expr: increase(container_cpu_usage_seconds_total{container="eks-cloudforge-app"}[1h]) > 3600
+          for: 10m
+          labels:
+            severity: warning
+            cost-center: "monitoring"
+            instance-type: "t3-micro"
+          annotations:
+            summary: "High cost detected"
+            description: "High CPU usage over 1 hour may indicate cost issues"
+            cost_impact: "May exceed budget - review resource usage"
+            runbook_url: "https://github.com/your-repo/runbooks/high-cost"
+        
+        # Disk Usage Alert
+        - alert: HighDiskUsage
+          expr: container_fs_usage_bytes{container="eks-cloudforge-app"} / container_fs_limit_bytes{container="eks-cloudforge-app"} * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            cost-center: "monitoring"
+            instance-type: "t3-micro"
+          annotations:
+            summary: "High disk usage detected"
+            description: "Disk usage is high: {{ $value }}%"
+            cost_impact: "May cause application failures"
+            runbook_url: "https://github.com/your-repo/runbooks/high-disk-usage"
+        
+        # Low Request Rate Alert (Potential Issues)
+        - alert: LowRequestRate
+          expr: rate(http_requests_total{job="eks-cloudforge-app"}[5m]) < 0.1
+          for: 10m
+          labels:
+            severity: info
+            cost-center: "monitoring"
+            instance-type: "t3-micro"
+          annotations:
+            summary: "Low request rate detected"
+            description: "Request rate is very low: {{ $value }} req/s"
+            cost_impact: "May indicate application issues or low traffic"
+            runbook_url: "https://github.com/your-repo/runbooks/low-request-rate" 

@@ -82,8 +82,8 @@ resources:
     cpu: "200m"        # 20% of 1 vCPU
     memory: "256Mi"    # 25% of 1GB RAM
   limits:
-    cpu: "500m"        # 50% of 1 vCPU
-    memory: "512Mi"    # 50% of 1GB RAM
+    cpu: "800m"        # 80% of 1 vCPU (allows scaling before throttling)
+    memory: "800Mi"    # 80% of 1GB RAM (allows scaling before OOM)
 ```
 
 #### **Auto-scaling Configuration:**
@@ -130,8 +130,8 @@ resources:
     cpu: "200m"
     memory: "256Mi"
   limits:
-    cpu: "500m"
-    memory: "512Mi"
+    cpu: "800m"
+    memory: "800Mi"
 
 autoscaling:
   enabled: true
@@ -265,8 +265,8 @@ resources:
     cpu: "200m"        # Minimum guaranteed CPU
     memory: "256Mi"    # Minimum guaranteed memory
   limits:
-    cpu: "500m"        # Maximum allowed CPU
-    memory: "512Mi"    # Maximum allowed memory
+    cpu: "800m"        # Maximum allowed CPU (allows scaling before throttling)
+    memory: "800Mi"    # Maximum allowed memory (allows scaling before OOM)
 ```
 
 #### **Node Affinity (t3.micro preference):**
@@ -514,8 +514,8 @@ kubectl top nodes
 ### **Resource Optimization:**
 - **CPU Requests**: 200m (20% of t3.micro)
 - **Memory Requests**: 256Mi (25% of t3.micro)
-- **CPU Limits**: 500m (50% of t3.micro)
-- **Memory Limits**: 512Mi (50% of t3.micro)
+- **CPU Limits**: 800m (80% of t3.micro)
+- **Memory Limits**: 800Mi (80% of t3.micro)
 
 ### **Scaling Optimization:**
 - **Min Replicas**: 1 (minimum cost)

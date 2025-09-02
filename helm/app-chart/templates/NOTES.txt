@@ -102,9 +102,9 @@ helm upgrade {{ .Release.Name }} . --set autoscaling.enabled=true
 
 **Resource Limits (per pod):**
 - **CPU Request:** {{ .Values.resources.requests.cpu | default "200m" }}
-- **CPU Limit:** {{ .Values.resources.limits.cpu | default "500m" }}
+- **CPU Limit:** {{ .Values.resources.limits.cpu | default "800m" }}
 - **Memory Request:** {{ .Values.resources.requests.memory | default "256Mi" }}
-- **Memory Limit:** {{ .Values.resources.limits.memory | default "512Mi" }}
+- **Memory Limit:** {{ .Values.resources.limits.memory | default "800Mi" }}
 
 ## 🔒 **Security Features**
 

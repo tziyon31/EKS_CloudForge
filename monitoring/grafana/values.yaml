@@ -1,0 +1,613 @@
+# =============================================================================
+# Grafana Configuration for EKS CloudForge
+# =============================================================================
+# Optimized for t3.micro instances with custom dashboards
+# Cost-effective visualization solution
+
+# =============================================================================
+# IMAGE CONFIGURATION
+# =============================================================================
+
+image:
+  repository: grafana/grafana
+  tag: 10.1.0
+  pullPolicy: IfNotPresent
+
+# =============================================================================
+# RESOURCE CONFIGURATION
+# =============================================================================
+
+resources:
+  requests:
+    cpu: 100m        # 10% of 1 vCPU
+    memory: 128Mi    # 12.5% of 1GB RAM
+  limits:
+    cpu: 200m        # 20% of 1 vCPU
+    memory: 256Mi    # 25% of 1GB RAM
+
+# =============================================================================
+# STORAGE CONFIGURATION
+# =============================================================================
+
+persistence:
+  enabled: true
+  storageClassName: gp2
+  accessMode: ReadWriteOnce
+  size: 2Gi          # ~$0.20/month
+  annotations: {}
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 472
+  fsGroup: 472
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 472
+  fsGroup: 472
+
+# =============================================================================
+# ACCESS CONFIGURATION
+# =============================================================================
+
+adminUser: admin
+adminPassword: admin123
+
+# =============================================================================
+# SERVICE CONFIGURATION
+# =============================================================================
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+  annotations:
+    cost-center: "monitoring"
+
+# =============================================================================
+# INGRESS CONFIGURATION
+# =============================================================================
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+    cost-center: "monitoring"
+  hosts:
+    - host: grafana.eks-cloudforge.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# =============================================================================
+# DASHBOARDS CONFIGURATION
+# =============================================================================
+
+dashboards:
+  default:
+    eks-cloudforge-app:
+      gnetId: 1860
+      revision: 22
+      datasource: Prometheus
+      folder: ""
+      json: |
+        {
+          "annotations": {
+            "list": [
+              {
+                "builtIn": 1,
+                "datasource": {
+                  "type": "grafana",
+                  "uid": "-- Grafana --"
+                },
+                "enable": true,
+                "hide": true,
+                "iconColor": "rgba(0, 211, 255, 1)",
+                "name": "Annotations & Alerts",
+                "type": "dashboard"
+              }
+            ]
+          },
+          "editable": true,
+          "fiscalYearStartMonth": 0,
+          "graphTooltip": 0,
+          "id": null,
+          "links": [],
+          "liveNow": false,
+          "panels": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "vis": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "percent"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 0
+              },
+              "id": 1,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "prometheus"
+                  },
+                  "expr": "rate(container_cpu_usage_seconds_total{container=\"eks-cloudforge-app\"}[5m]) * 100",
+                  "refId": "A"
+                }
+              ],
+              "title": "CPU Usage",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "vis": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 800000000
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 0
+              },
+              "id": 2,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "prometheus"
+                  },
+                  "expr": "container_memory_usage_bytes{container=\"eks-cloudforge-app\"}",
+                  "refId": "A"
+                }
+              ],
+              "title": "Memory Usage",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "percent"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 0,
+                "y": 16
+              },
+              "id": 5,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "auto"
+              },
+              "pluginVersion": "10.1.0",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "prometheus"
+                  },
+                  "expr": "rate(container_cpu_usage_seconds_total{container=\"eks-cloudforge-app\"}[5m]) * 100",
+                  "refId": "A"
+                }
+              ],
+              "title": "Current CPU Usage",
+              "type": "stat"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 800000000
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 6,
+                "y": 16
+              },
+              "id": 6,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "textMode": "auto"
+              },
+              "pluginVersion": "10.1.0",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "prometheus"
+                  },
+                  "expr": "container_memory_usage_bytes{container=\"eks-cloudforge-app\"}",
+                  "refId": "A"
+                }
+              ],
+              "title": "Current Memory Usage",
+              "type": "stat"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "vis": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  },
+                  "unit": "currencyUSD"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 24
+              },
+              "id": 10,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "prometheus"
+                  },
+                  "expr": "increase(container_cpu_usage_seconds_total{container=\"eks-cloudforge-app\"}[1h]) * 0.0001",
+                  "refId": "A"
+                }
+              ],
+              "title": "Estimated Cost (per hour)",
+              "type": "timeseries"
+            }
+          ],
+          "refresh": "30s",
+          "schemaVersion": 38,
+          "style": "dark",
+          "tags": [
+            "eks",
+            "cloudforge",
+            "monitoring",
+            "cost-optimized"
+          ],
+          "templating": {
+            "list": []
+          },
+          "time": {
+            "from": "now-1h",
+            "to": "now"
+          },
+          "timepicker": {},
+          "timezone": "",
+          "title": "EKS CloudForge Application Dashboard",
+          "uid": "eks-cloudforge-app",
+          "version": 1,
+          "weekStart": ""
+        }
+
+# =============================================================================
+# DATASOURCES CONFIGURATION
+# =============================================================================
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-operated.monitoring.svc.cluster.local:9090
+        access: proxy
+        isDefault: true
+        editable: true
+        jsonData:
+          timeInterval: 30s
+          queryTimeout: 60s
+          httpMethod: POST
+
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+grafana.ini:
+  server:
+    http_port: 3000
+    domain: grafana.eks-cloudforge.local
+    root_url: http://grafana.eks-cloudforge.local
+    serve_from_sub_path: false
+  security:
+    admin_user: admin
+    admin_password: admin123
+    allow_embedding: true
+  users:
+    allow_sign_up: false
+    allow_org_create: false
+  auth.anonymous:
+    enabled: false
+  log:
+    mode: console
+    level: info
+  metrics:
+    enabled: true
+    interval_seconds: 30
+  feature_toggles:
+    enable: traceqlEditor
+
+# =============================================================================
+# LABELS AND ANNOTATIONS
+# =============================================================================
+
+labels:
+  app: grafana
+  component: monitoring
+  cost-center: "monitoring"
+
+annotations:
+  cost-center: "monitoring"
+  monitoring: "true"
+
+# =============================================================================
+# COST OPTIMIZATION
+# =============================================================================
+
+# Resource usage optimized for t3.micro:
+# - CPU: 200m (20% of 1 vCPU)
+# - Memory: 256Mi (25% of 1GB RAM)
+# - Storage: 2Gi (~$0.20/month)
+# - Total cost: ~$0.50/month
+
+# Features disabled for cost optimization:
+# - Anonymous access
+# - User sign-up
+# - Organization creation
+# - Advanced features not needed for basic monitoring 

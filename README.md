@@ -21,6 +21,8 @@ EKS_CloudForge/
 ├── app/                # Application code
 │   ├── app.py         # Flask application
 │   ├── requirements.txt # Python dependencies
+│   ├── requirements-test.txt # Testing dependencies
+│   ├── test_app.py    # Comprehensive test suite
 │   └── Dockerfile     # Container configuration
 ├── helm/              # Kubernetes deployment
 │   └── app-chart/     # Helm chart for the application
@@ -35,8 +37,20 @@ EKS_CloudForge/
 │           └── secret.yaml      # Sensitive data (if needed)
 ├── .github/           # GitHub Actions workflows
 │   └── workflows/     # CI/CD pipeline definitions
+│       └── ci-cd-pipeline.yml # Comprehensive CI/CD pipeline
 ├── monitoring/        # Monitoring configuration
+│   ├── prometheus/    # Prometheus configuration
+│   │   └── values.yaml # Prometheus Helm values
+│   ├── grafana/       # Grafana configuration
+│   │   └── dashboards/ # Custom dashboards
+│   │       └── eks-cloudforge-app.json # Application dashboard
+│   └── deploy-monitoring.sh # Deployment script
 └── docs/             # Documentation
+    ├── terraform-deployment-guide.md
+    ├── application-containerization-guide.md
+    ├── helm-deployment-guide.md
+    ├── ci-cd-pipeline-guide.md
+    └── monitoring-deployment-guide.md
 ```
 
 ### Prerequisites

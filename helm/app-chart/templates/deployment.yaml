@@ -41,7 +41,7 @@ spec:
         # Monitoring annotations
         prometheus.io/scrape: "true"
         prometheus.io/port: "5000"
-        prometheus.io/path: "/metrics"
+        prometheus.io/path: "/prometheus"
         # Health check annotations
         health-check: "enabled"
         liveness-probe: "/health"

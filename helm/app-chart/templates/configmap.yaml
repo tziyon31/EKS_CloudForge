@@ -69,9 +69,9 @@ data:
   
   # Resource limits configuration
   CPU_REQUEST: "{{ .Values.resources.requests.cpu | default '200m' }}"
-  CPU_LIMIT: "{{ .Values.resources.limits.cpu | default '500m' }}"
+  CPU_LIMIT: "{{ .Values.resources.limits.cpu | default '800m' }}"
   MEMORY_REQUEST: "{{ .Values.resources.requests.memory | default '256Mi' }}"
-  MEMORY_LIMIT: "{{ .Values.resources.limits.memory | default '512Mi' }}"
+  MEMORY_LIMIT: "{{ .Values.resources.limits.memory | default '800Mi' }}"
   
   # Service configuration
   SERVICE_TYPE: "{{ .Values.service.type | default 'ClusterIP' }}"

@@ -10,7 +10,7 @@ import json
 import platform
 import psutil
 from datetime import datetime
-from flask import Flask, jsonify, request, render_template_string
+from flask import Flask, jsonify, request, render_template_string, Response
 
 # Initialize Flask application
 app = Flask(__name__)
@@ -186,6 +186,7 @@ HTML_TEMPLATE = """
                 <li><strong>GET /health</strong> - Health check endpoint</li>
                 <li><strong>GET /status</strong> - Detailed application status</li>
                 <li><strong>GET /metrics</strong> - System metrics and resource usage</li>
+                <li><strong>GET /prometheus</strong> - Prometheus metrics (for monitoring)</li>
                 <li><strong>GET /api/info</strong> - API information</li>
             </ul>
         </div>
@@ -303,6 +304,76 @@ def metrics():
         }
     }), 200
 
+@app.route('/prometheus')
+def prometheus_metrics():
+    """Prometheus-compatible metrics endpoint"""
+    global REQUEST_COUNT
+    REQUEST_COUNT += 1
+    
+    # Get system metrics
+    cpu_percent = psutil.cpu_percent(interval=1)
+    memory = psutil.virtual_memory()
+    disk = psutil.disk_usage('/')
+    
+    # Calculate request rate
+    uptime_seconds = (datetime.now() - START_TIME).total_seconds()
+    request_rate = REQUEST_COUNT / uptime_seconds if uptime_seconds > 0 else 0
+    
+    # Build Prometheus metrics
+    metrics = []
+    
+    # Application metrics
+    metrics.append(f"# HELP app_requests_total Total number of requests")
+    metrics.append(f"# TYPE app_requests_total counter")
+    metrics.append(f"app_requests_total {REQUEST_COUNT}")
+    
+    metrics.append(f"# HELP app_uptime_seconds Application uptime in seconds")
+    metrics.append(f"# TYPE app_uptime_seconds gauge")
+    metrics.append(f"app_uptime_seconds {uptime_seconds}")
+    
+    # System metrics
+    metrics.append(f"# HELP container_cpu_usage_seconds_total Total CPU usage in seconds")
+    metrics.append(f"# TYPE container_cpu_usage_seconds_total counter")
+    metrics.append(f"container_cpu_usage_seconds_total{{container=\"eks-cloudforge-app\"}} {cpu_percent / 100}")
+    
+    metrics.append(f"# HELP container_memory_usage_bytes Memory usage in bytes")
+    metrics.append(f"# TYPE container_memory_usage_bytes gauge")
+    metrics.append(f"container_memory_usage_bytes{{container=\"eks-cloudforge-app\"}} {memory.used}")
+    
+    metrics.append(f"# HELP container_fs_usage_bytes Filesystem usage in bytes")
+    metrics.append(f"# TYPE container_fs_usage_bytes gauge")
+    metrics.append(f"container_fs_usage_bytes{{container=\"eks-cloudforge-app\"}} {disk.used}")
+    
+    metrics.append(f"# HELP container_fs_limit_bytes Filesystem limit in bytes")
+    metrics.append(f"# TYPE container_fs_limit_bytes gauge")
+    metrics.append(f"container_fs_limit_bytes{{container=\"eks-cloudforge-app\"}} {disk.total}")
+    
+    # HTTP metrics (simulated for demo)
+    metrics.append(f"# HELP http_requests_total Total HTTP requests")
+    metrics.append(f"# TYPE http_requests_total counter")
+    metrics.append(f"http_requests_total{{job=\"eks-cloudforge-app\",status=\"200\"}} {REQUEST_COUNT}")
+    
+    metrics.append(f"# HELP http_request_duration_seconds_sum Sum of HTTP request durations")
+    metrics.append(f"# TYPE http_request_duration_seconds_sum counter")
+    metrics.append(f"http_request_duration_seconds_sum{{job=\"eks-cloudforge-app\"}} {REQUEST_COUNT * 0.1}")
+    
+    metrics.append(f"# HELP http_request_duration_seconds_count Count of HTTP requests")
+    metrics.append(f"# TYPE http_request_duration_seconds_count counter")
+    metrics.append(f"http_request_duration_seconds_count{{job=\"eks-cloudforge-app\"}} {REQUEST_COUNT}")
+    
+    # Cost estimation metrics
+    estimated_cost_per_hour = (cpu_percent / 100) * 0.0001  # Rough cost estimation
+    metrics.append(f"# HELP app_cost_per_hour Estimated cost per hour")
+    metrics.append(f"# TYPE app_cost_per_hour gauge")
+    metrics.append(f"app_cost_per_hour{{job=\"eks-cloudforge-app\"}} {estimated_cost_per_hour}")
+    
+    # Add timestamp
+    metrics.append(f"# HELP app_metrics_timestamp Last metrics collection timestamp")
+    metrics.append(f"# TYPE app_metrics_timestamp gauge")
+    metrics.append(f"app_metrics_timestamp {int(time.time())}")
+    
+    return Response('\n'.join(metrics), mimetype='text/plain')
+
 @app.route('/api/info')
 def api_info():
     """API information and documentation"""
@@ -318,7 +389,8 @@ def api_info():
                 'GET /': 'Main application page',
                 'GET /health': 'Health check endpoint',
                 'GET /status': 'Detailed application status',
-                'GET /metrics': 'System metrics',
+                'GET /metrics': 'System metrics (JSON)',
+                'GET /prometheus': 'Prometheus metrics (text/plain)',
                 'GET /api/info': 'API information (this endpoint)'
             }
         },
@@ -345,6 +417,7 @@ def not_found(error):
             '/health',
             '/status',
             '/metrics',
+            '/prometheus',
             '/api/info'
         ]
     }), 404
@@ -374,6 +447,7 @@ if __name__ == '__main__':
     print(f"💻 Instance Type: t3.micro")
     print(f"💰 Cost Optimized: Yes")
     print(f"🔄 Auto Scaling: Enabled")
+    print(f"📊 Monitoring: Prometheus metrics available at /prometheus")
     
     # Start the Flask application
     app.run(host=host, port=port, debug=False) 

@@ -1,0 +1,530 @@
+# =============================================================================
+# EKS CloudForge CI/CD Pipeline
+# =============================================================================
+# Comprehensive CI/CD pipeline for EKS CloudForge application
+# Includes: testing, building, security scanning, infrastructure & app deployment
+
+name: EKS CloudForge CI/CD Pipeline
+
+# =============================================================================
+# TRIGGERS
+# =============================================================================
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      skip_infrastructure:
+        description: 'Skip infrastructure deployment'
+        required: false
+        default: false
+        type: boolean
+      skip_security_scan:
+        description: 'Skip security scanning'
+        required: false
+        default: false
+        type: boolean
+  
+  # Automatic triggers
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'app/**'
+      - 'terraform/**'
+      - 'helm/**'
+      - '.github/workflows/**'
+      - 'docs/**'
+  
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'app/**'
+      - 'terraform/**'
+      - 'helm/**'
+      - '.github/workflows/**'
+
+# =============================================================================
+# ENVIRONMENT VARIABLES
+# =============================================================================
+
+env:
+  # AWS Configuration
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: cloudforge-app
+  
+  # Application Configuration
+  APP_NAME: eks-cloudforge-app
+  APP_VERSION: ${{ github.sha }}
+  
+  # Infrastructure Configuration
+  TF_WORKSPACE: ${{ github.event.inputs.environment || 'dev' }}
+  TF_VAR_ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
+  
+  # Security Configuration
+  TRIVY_SEVERITY: CRITICAL,HIGH
+  TRIVY_EXIT_CODE: 1
+  
+  # Cost Configuration
+  COST_ALERT_THRESHOLD: 50  # USD per month
+
+# =============================================================================
+# JOBS
+# =============================================================================
+
+jobs:
+  # =============================================================================
+  # JOB 1: CODE QUALITY & TESTING
+  # =============================================================================
+  
+  code-quality:
+    name: Code Quality & Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          cd app
+          pip install -r requirements-test.txt
+      
+      - name: Code formatting check
+        run: |
+          cd app
+          black --check --diff .
+          isort --check-only --diff .
+      
+      - name: Linting
+        run: |
+          cd app
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      
+      - name: Run tests
+        run: |
+          cd app
+          pytest --cov=. --cov-report=xml --cov-report=html
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./app/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+      
+      - name: Terraform format check
+        run: |
+          cd terraform
+          terraform fmt -check -recursive
+      
+      - name: Terraform validation
+        run: |
+          cd terraform
+          terraform init -backend=false
+          terraform validate
+      
+      - name: Helm lint
+        run: |
+          cd helm/app-chart
+          helm lint .
+          helm template . --dry-run
+
+  # =============================================================================
+  # JOB 2: SECURITY SCANNING
+  # =============================================================================
+  
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ !github.event.inputs.skip_security_scan }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: ${{ env.TRIVY_SEVERITY }}
+          exit-code: ${{ env.TRIVY_EXIT_CODE }}
+      
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+      
+      - name: Run Bandit security linter
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install Bandit
+        run: pip install bandit
+      
+      - name: Run Bandit
+        run: |
+          cd app
+          bandit -r . -f json -o bandit-report.json || true
+      
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: .
+          base: ${{ github.event.before }}
+          head: ${{ github.event.after }}
+          extra_args: --only-verified
+
+  # =============================================================================
+  # JOB 3: DOCKER BUILD & PUSH
+  # =============================================================================
+  
+  docker-build:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [code-quality, security-scan]
+    if: always() && (needs.code-quality.result == 'success' && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped'))
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ env.APP_VERSION }}
+        run: |
+          cd app
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+      
+      - name: Scan Docker image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+          severity: ${{ env.TRIVY_SEVERITY }}
+          exit-code: ${{ env.TRIVY_EXIT_CODE }}
+      
+      - name: Upload Docker scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-image-results.sarif'
+
+  # =============================================================================
+  # JOB 4: INFRASTRUCTURE DEPLOYMENT
+  # =============================================================================
+  
+  infrastructure:
+    name: Infrastructure Deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [code-quality, security-scan]
+    if: always() && (needs.code-quality.result == 'success' && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped')) && ${{ !github.event.inputs.skip_infrastructure }}
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
+      
+      - name: Terraform Init
+        run: |
+          cd terraform
+          terraform init
+          terraform workspace select ${{ env.TF_WORKSPACE }} || terraform workspace new ${{ env.TF_WORKSPACE }}
+      
+      - name: Terraform Plan
+        id: plan
+        run: |
+          cd terraform
+          terraform plan \
+            -var="environment=${{ env.TF_VAR_ENVIRONMENT }}" \
+            -var="project_name=eks-cloudforge" \
+            -out=tfplan
+      
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        run: |
+          cd terraform
+          terraform apply -auto-approve tfplan
+      
+      - name: Get ECR repository URL
+        id: ecr-url
+        run: |
+          cd terraform
+          ECR_URL=$(terraform output -raw ecr_repository_url)
+          echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
+      
+      - name: Get EKS cluster name
+        id: cluster-name
+        run: |
+          cd terraform
+          CLUSTER_NAME=$(terraform output -raw eks_cluster_name)
+          echo "cluster_name=$CLUSTER_NAME" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # JOB 5: APPLICATION DEPLOYMENT
+  # =============================================================================
+  
+  application-deployment:
+    name: Application Deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [docker-build, infrastructure]
+    if: always() && needs.docker-build.result == 'success' && (needs.infrastructure.result == 'success' || needs.infrastructure.result == 'skipped')
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup kubectl
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ needs.infrastructure.outputs.cluster-name }}
+      
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.12.0'
+      
+      - name: Deploy application with Helm
+        run: |
+          cd helm/app-chart
+          helm upgrade --install ${{ env.APP_NAME }} . \
+            --namespace default \
+            --create-namespace \
+            --set image.repository=${{ needs.infrastructure.outputs.ecr-url }} \
+            --set image.tag=${{ env.APP_VERSION }} \
+            --set global.labels.environment=${{ env.TF_VAR_ENVIRONMENT }} \
+            --wait \
+            --timeout 10m \
+            --atomic
+      
+      - name: Verify deployment
+        run: |
+          kubectl get pods -l app=${{ env.APP_NAME }} -n default
+          kubectl get services -l app=${{ env.APP_NAME }} -n default
+          kubectl get ingress -l app=${{ env.APP_NAME }} -n default
+      
+      - name: Run smoke tests
+        run: |
+          # Wait for pods to be ready
+          kubectl wait --for=condition=ready pod -l app=${{ env.APP_NAME }} -n default --timeout=300s
+          
+          # Get service URL
+          SERVICE_URL=$(kubectl get service ${{ env.APP_NAME }}-service -n default -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          
+          # Test health endpoint
+          curl -f http://$SERVICE_URL/health || echo "Health check failed"
+          
+          # Test main endpoint
+          curl -f http://$SERVICE_URL/ || echo "Main endpoint check failed"
+
+  # =============================================================================
+  # JOB 6: MONITORING & COST TRACKING
+  # =============================================================================
+  
+  monitoring:
+    name: Monitoring & Cost Tracking
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [application-deployment]
+    if: always() && needs.application-deployment.result == 'success'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup kubectl
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ needs.infrastructure.outputs.cluster-name }}
+      
+      - name: Check application health
+        run: |
+          # Check pod status
+          kubectl get pods -l app=${{ env.APP_NAME }} -n default
+          
+          # Check resource usage
+          kubectl top pods -l app=${{ env.APP_NAME }} -n default || echo "Metrics server not available"
+          
+          # Check HPA status
+          kubectl get hpa -l app=${{ env.APP_NAME }} -n default || echo "HPA not found"
+      
+      - name: Estimate costs
+        run: |
+          # Get resource usage
+          CPU_USAGE=$(kubectl top pods -l app=${{ env.APP_NAME }} -n default --no-headers | awk '{sum+=$2} END {print sum}' || echo "0")
+          MEMORY_USAGE=$(kubectl top pods -l app=${{ env.APP_NAME }} -n default --no-headers | awk '{sum+=$3} END {print sum}' || echo "0")
+          
+          echo "Current CPU usage: ${CPU_USAGE}m"
+          echo "Current Memory usage: ${MEMORY_USAGE}Mi"
+          
+          # Calculate estimated cost (rough estimation)
+          # t3.micro: ~$8.47/month per instance
+          INSTANCE_COUNT=$(kubectl get nodes --no-headers | wc -l)
+          ESTIMATED_COST=$((INSTANCE_COUNT * 8))
+          
+          echo "Estimated monthly cost: $${ESTIMATED_COST}"
+          
+          # Alert if cost exceeds threshold
+          if [ $ESTIMATED_COST -gt ${{ env.COST_ALERT_THRESHOLD }} ]; then
+            echo "⚠️ Cost alert: Estimated cost ($${ESTIMATED_COST}) exceeds threshold ($${{ env.COST_ALERT_THRESHOLD }})"
+            exit 1
+          fi
+      
+             - name: Deploy monitoring stack
+         run: |
+           # Deploy monitoring if not exists
+           if ! kubectl get namespace monitoring &> /dev/null; then
+             echo "Deploying monitoring stack..."
+             chmod +x monitoring/deploy-monitoring.sh
+             ./monitoring/deploy-monitoring.sh
+           else
+             echo "Monitoring stack already exists"
+           fi
+       
+       - name: Generate deployment report
+         run: |
+           echo "## Deployment Report" >> $GITHUB_STEP_SUMMARY
+           echo "" >> $GITHUB_STEP_SUMMARY
+           echo "**Environment:** ${{ env.TF_VAR_ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
+           echo "**Application:** ${{ env.APP_NAME }}" >> $GITHUB_STEP_SUMMARY
+           echo "**Version:** ${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
+           echo "**Status:** ✅ Successfully deployed" >> $GITHUB_STEP_SUMMARY
+           echo "" >> $GITHUB_STEP_SUMMARY
+           echo "### Resources Created:" >> $GITHUB_STEP_SUMMARY
+           echo "- EKS Cluster: ${{ needs.infrastructure.outputs.cluster-name }}" >> $GITHUB_STEP_SUMMARY
+           echo "- ECR Repository: ${{ needs.infrastructure.outputs.ecr-url }}" >> $GITHUB_STEP_SUMMARY
+           echo "- Application Pods: $(kubectl get pods -l app=${{ env.APP_NAME }} -n default --no-headers | wc -l)" >> $GITHUB_STEP_SUMMARY
+           echo "- Monitoring Stack: Prometheus, Grafana, AlertManager" >> $GITHUB_STEP_SUMMARY
+           echo "" >> $GITHUB_STEP_SUMMARY
+           echo "### Access URLs:" >> $GITHUB_STEP_SUMMARY
+           echo "- Application: http://eks-cloudforge.local" >> $GITHUB_STEP_SUMMARY
+           echo "- Grafana: http://grafana.eks-cloudforge.local (admin/admin123)" >> $GITHUB_STEP_SUMMARY
+           echo "- Prometheus: http://prometheus-operated.monitoring.svc.cluster.local:9090" >> $GITHUB_STEP_SUMMARY
+           echo "" >> $GITHUB_STEP_SUMMARY
+           echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+           echo "1. Monitor application health via Grafana" >> $GITHUB_STEP_SUMMARY
+           echo "2. Set up alerts and notifications" >> $GITHUB_STEP_SUMMARY
+           echo "3. Configure custom domain and SSL" >> $GITHUB_STEP_SUMMARY
+           echo "4. Review cost optimization opportunities" >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # JOB 7: CLEANUP (ON FAILURE)
+  # =============================================================================
+  
+  cleanup:
+    name: Cleanup on Failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: failure() && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
+      
+      - name: Cleanup infrastructure
+        run: |
+          cd terraform
+          terraform init
+          terraform workspace select ${{ env.TF_WORKSPACE }} || exit 0
+          terraform destroy -auto-approve -var="environment=${{ env.TF_VAR_ENVIRONMENT }}"
+      
+      - name: Cleanup ECR images
+        run: |
+          # Delete failed build images
+          aws ecr batch-delete-image \
+            --repository-name ${{ env.ECR_REPOSITORY }} \
+            --image-ids imageTag=${{ env.APP_VERSION }} || true
+      
+      - name: Notify failure
+        run: |
+          echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The deployment has failed and resources have been cleaned up." >> $GITHUB_STEP_SUMMARY
+          echo "Please check the logs above for more details." >> $GITHUB_STEP_SUMMARY 

@@ -1,0 +1,50 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "eks-cloudforge-app.serviceMonitorName" . }}
+  labels:
+    {{- include "eks-cloudforge-app.labels" . | nindent 4 }}
+    {{- include "eks-cloudforge-app.monitoringLabels" . | nindent 4 }}
+    app: eks-cloudforge-app
+  annotations:
+    cost-center: "monitoring"
+    monitoring: "true"
+spec:
+  selector:
+    matchLabels:
+      {{- include "eks-cloudforge-app.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /prometheus
+      interval: 30s
+      scrapeTimeout: 10s
+      honorLabels: true
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: 'container_(cpu_usage_seconds_total|memory_usage_bytes|fs_usage_bytes)'
+          action: keep
+        - sourceLabels: [__name__]
+          regex: 'http_(requests_total|request_duration_seconds_.*)'
+          action: keep
+        - sourceLabels: [__name__]
+          regex: 'kubelet_running_pods'
+          action: keep
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  jobLabel: eks-cloudforge-app
+  podTargetLabels:
+    - app
+    - app.kubernetes.io/name
+    - app.kubernetes.io/instance
+  relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_label_app]
+      targetLabel: app
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_pod_container_name]
+      targetLabel: container
+    - sourceLabels: [__meta_kubernetes_service_name]
+      targetLabel: service 

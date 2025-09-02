@@ -79,15 +79,17 @@ resources:
     memory: "256Mi"    # 25% of 1GB RAM
   
   # Resource limits (maximum allowed resources)
+  # Set higher to allow auto-scaling to trigger before OOM
   limits:
-    cpu: "500m"        # 50% of 1 vCPU
-    memory: "512Mi"    # 50% of 1GB RAM
+    cpu: "800m"        # 80% of 1 vCPU (allows scaling before throttling)
+    memory: "800Mi"    # 80% of 1GB RAM (allows scaling before OOM)
   
   # Notes:
   # - t3.micro has 1 vCPU and 1GB RAM
   # - System pods use ~200-300m CPU and ~400-600MB RAM
   # - Our app uses ~200-300m CPU and ~50-100MB RAM
   # - Available for scaling: ~400-600MB RAM, ~700-800m CPU
+  # - Limits set to 80% to allow auto-scaling before OOM/throttling
 
 # =============================================================================
 # CONTAINER CONFIGURATION

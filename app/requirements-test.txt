@@ -1,0 +1,35 @@
+# =============================================================================
+# EKS CloudForge Testing Dependencies
+# =============================================================================
+# Testing and development dependencies for CI/CD pipeline
+# These are NOT included in the production Docker image
+
+# Production dependencies (same as requirements.txt)
+Flask==3.0.0
+psutil==5.9.6
+
+# Testing framework
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+pytest-flask==1.3.0
+
+# Code quality and formatting
+black==23.11.0
+flake8==6.1.0
+isort==5.12.0
+
+# Security scanning
+bandit==1.7.5
+
+# Additional testing utilities
+requests==2.31.0
+coverage==7.3.2
+
+# =============================================================================
+# Usage Notes:
+# =============================================================================
+# - Install with: pip install -r requirements-test.txt
+# - Used only in CI/CD pipeline and development
+# - Not included in production Docker image
+# - Keeps production image lightweight 

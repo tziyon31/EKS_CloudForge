@@ -185,8 +185,8 @@ requests:
   cpu: 200m
   memory: 256Mi
 limits:
-  cpu: 500m
-  memory: 512Mi
+  cpu: 800m
+  memory: 800Mi
 {{- end }}
 {{- end }}
 
@@ -367,7 +367,7 @@ Monitoring labels
 {{- define "eks-cloudforge-app.monitoringLabels" -}}
 prometheus.io/scrape: "true"
 prometheus.io/port: "5000"
-prometheus.io/path: "/metrics"
+prometheus.io/path: "/prometheus"
 {{- end }}
 
 {{/*
