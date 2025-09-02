@@ -50,7 +50,7 @@ resource "aws_s3_bucket_versioning" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
   versioning_configuration {
-    status = "Enabled"  # Enable versioning
+    status = "Enabled" # Enable versioning
   }
 }
 
@@ -61,7 +61,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" 
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"  # Use AES256 encryption
+      sse_algorithm = "AES256" # Use AES256 encryption
     }
   }
 }
@@ -471,7 +471,7 @@ resource "aws_ecr_lifecycle_policy" "app" {
     rules = [
       {
         rulePriority = 1
-        description   = "Keep last 5 images"
+        description  = "Keep last 5 images"
         selection = {
           tagStatus     = "tagged"
           tagPrefixList = ["v"]
