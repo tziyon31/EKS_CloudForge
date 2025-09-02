@@ -1,0 +1,57 @@
+# =============================================================================
+# EKS CloudForge Flask Application Dependencies
+# =============================================================================
+# Lightweight, cost-optimized dependencies for t3.micro instances
+# All packages are chosen for minimal resource usage and security
+
+# Core Flask framework - lightweight web framework
+Flask==3.0.0
+
+# System monitoring and metrics - lightweight alternative to heavy monitoring tools
+psutil==5.9.6
+
+# Additional Flask utilities (optional, but useful)
+# Uncomment if you need additional Flask features
+# Flask-CORS==4.0.0
+# Flask-Limiter==3.5.0
+
+# Development and testing dependencies (not needed in production)
+# These are commented out to keep the container lightweight
+# pytest==7.4.3
+# pytest-flask==1.3.0
+# black==23.11.0
+# flake8==6.1.0
+
+# Security and best practices
+# These packages help secure the application
+# cryptography==41.0.7  # Uncomment if you need encryption features
+# python-dotenv==1.0.0  # Uncomment if you need environment variable management
+
+# Performance optimization
+# These packages can improve performance on resource-constrained instances
+# gunicorn==21.2.0  # Production WSGI server (uncomment for production)
+# gevent==23.9.1    # Async networking (uncomment if needed)
+
+# =============================================================================
+# Version Pinning Notes:
+# =============================================================================
+# - All versions are pinned for reproducible builds
+# - Versions are chosen for stability and security
+# - Minimal dependencies to reduce attack surface
+# - Lightweight packages to work well on t3.micro instances
+
+# =============================================================================
+# Resource Usage Estimates:
+# =============================================================================
+# Flask: ~15MB memory footprint
+# psutil: ~5MB memory footprint
+# Total estimated memory: ~20MB for dependencies
+# Available for application: ~400-600MB on t3.micro
+
+# =============================================================================
+# Security Considerations:
+# =============================================================================
+# - All packages are from PyPI (trusted source)
+# - Versions are pinned to prevent supply chain attacks
+# - Minimal dependencies reduce attack surface
+# - Regular security updates recommended 

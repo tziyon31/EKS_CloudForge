@@ -1,0 +1,76 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "eks-cloudforge-app.ingressName" . }}
+  labels:
+    {{- include "eks-cloudforge-app.labels" . | nindent 4 }}
+    {{- include "eks-cloudforge-app.costLabels" . | nindent 4 }}
+  annotations:
+    {{- include "eks-cloudforge-app.ingressAnnotations" . | nindent 4 }}
+    # Ingress class
+    kubernetes.io/ingress.class: {{ .Values.ingress.className | default "nginx" }}
+    # SSL/TLS configuration
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    # Proxy configuration
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "4k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    # Rate limiting (optional)
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    # CORS configuration (optional)
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+    # Health check configuration
+    nginx.ingress.kubernetes.io/health-check-path: "/health"
+    nginx.ingress.kubernetes.io/health-check-interval: "30"
+    nginx.ingress.kubernetes.io/health-check-timeout: "5"
+    # Cost optimization annotations
+    cost-center: "devops"
+    instance-type: "t3-micro"
+    estimated-cost-per-month: "8.47"
+    auto-scaling: "enabled"
+    # Monitoring annotations
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "80"
+    prometheus.io/path: "/metrics"
+spec:
+  # Ingress class name
+  ingressClassName: {{ .Values.ingress.className | default "nginx" }}
+  
+  # TLS configuration (optional)
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  
+  # Rules configuration
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ include "eks-cloudforge-app.serviceName" $ }}
+                port:
+                  number: {{ $.Values.service.port | default 80 }}
+          {{- end }}
+    {{- end }}
+{{- end }} 

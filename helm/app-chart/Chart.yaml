@@ -1,0 +1,48 @@
+apiVersion: v2
+name: eks-cloudforge-app
+description: A Helm chart for deploying the EKS CloudForge Flask application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+# Keywords for Helm Hub discovery
+keywords:
+  - flask
+  - python
+  - eks
+  - cost-optimized
+  - t3-micro
+
+# Home page for the project
+home: https://github.com/your-org/eks-cloudforge
+
+# Source code repository
+sources:
+  - https://github.com/your-org/eks-cloudforge
+
+# Maintainer information
+maintainers:
+  - name: DevOps Team
+    email: devops@yourcompany.com
+
+# Application icon (optional)
+# icon: https://your-domain.com/icon.png
+
+# KubeVersion specifies the minimum Kubernetes version required
+kubeVersion: ">=1.19.0-0"
+
+# Helm version requirement
+helmVersion: ">=3.0.0"
+
+# Dependencies (if any)
+# dependencies:
+#   - name: nginx-ingress
+#     version: 4.0.0
+#     repository: https://kubernetes.github.io/ingress-nginx
+#     condition: ingress.enabled
+
+# Annotations for additional metadata
+annotations:
+  category: Application
+  licenses: MIT
+  support: https://github.com/your-org/eks-cloudforge/issues 

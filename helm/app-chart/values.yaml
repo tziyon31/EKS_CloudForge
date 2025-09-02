@@ -1,0 +1,446 @@
+# =============================================================================
+# EKS CloudForge Application - Helm Values
+# =============================================================================
+# Default values for eks-cloudforge-app chart
+# Optimized for t3.micro instances and cost efficiency
+
+# =============================================================================
+# GLOBAL SETTINGS
+# =============================================================================
+
+# Global labels and annotations
+global:
+  # Common labels applied to all resources
+  labels:
+    app: eks-cloudforge-app
+    version: "1.0.0"
+    environment: "dev"
+    cost-optimized: "true"
+    instance-type: "t3-micro"
+  
+  # Common annotations
+  annotations:
+    cost-center: "devops"
+    managed-by: "helm"
+    backup: "false"
+
+# =============================================================================
+# IMAGE CONFIGURATION
+# =============================================================================
+
+# Container image settings
+image:
+  # ECR repository URL (will be set from Terraform output)
+  repository: "123456789012.dkr.ecr.us-east-1.amazonaws.com/cloudforge-app"
+  tag: "latest"
+  pullPolicy: IfNotPresent
+  
+  # Image pull secrets (if using private registry)
+  # pullSecrets:
+  #   - name: regcred
+
+# =============================================================================
+# DEPLOYMENT CONFIGURATION
+# =============================================================================
+
+# Deployment settings
+deployment:
+  # Number of replicas (optimized for t3.micro)
+  replicas: 2
+  
+  # Update strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  
+  # Pod template labels
+  podLabels:
+    app: eks-cloudforge-app
+    tier: web
+  
+  # Pod template annotations
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "5000"
+    prometheus.io/path: "/metrics"
+    cost-optimization: "t3-micro-optimized"
+
+# =============================================================================
+# RESOURCE LIMITS (t3.micro optimized)
+# =============================================================================
+
+# Resource requests and limits
+resources:
+  # Resource requests (minimum guaranteed resources)
+  requests:
+    cpu: "200m"        # 20% of 1 vCPU
+    memory: "256Mi"    # 25% of 1GB RAM
+  
+  # Resource limits (maximum allowed resources)
+  limits:
+    cpu: "500m"        # 50% of 1 vCPU
+    memory: "512Mi"    # 50% of 1GB RAM
+  
+  # Notes:
+  # - t3.micro has 1 vCPU and 1GB RAM
+  # - System pods use ~200-300m CPU and ~400-600MB RAM
+  # - Our app uses ~200-300m CPU and ~50-100MB RAM
+  # - Available for scaling: ~400-600MB RAM, ~700-800m CPU
+
+# =============================================================================
+# CONTAINER CONFIGURATION
+# =============================================================================
+
+# Container settings
+container:
+  # Container name
+  name: app
+  
+  # Container port
+  port: 5000
+  
+  # Environment variables
+  env:
+    - name: FLASK_ENV
+      value: "production"
+    - name: PORT
+      value: "5000"
+    - name: HOST
+      value: "0.0.0.0"
+    - name: PYTHONUNBUFFERED
+      value: "1"
+  
+  # Environment variables from configmap
+  # envFrom:
+  #   - configMapRef:
+  #       name: app-config
+  
+  # Environment variables from secrets
+  # envFrom:
+  #   - secretRef:
+  #       name: app-secrets
+
+# =============================================================================
+# HEALTH CHECKS
+# =============================================================================
+
+# Liveness probe configuration
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 5000
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+  successThreshold: 1
+
+# Readiness probe configuration
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 5000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Startup probe configuration
+startupProbe:
+  httpGet:
+    path: /health
+    port: 5000
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+  successThreshold: 1
+
+# =============================================================================
+# SERVICE CONFIGURATION
+# =============================================================================
+
+# Service settings
+service:
+  # Service type
+  type: ClusterIP
+  
+  # Service port
+  port: 80
+  
+  # Target port (container port)
+  targetPort: 5000
+  
+  # Service annotations
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-internal: "false"
+  
+  # Service labels
+  labels:
+    app: eks-cloudforge-app
+
+# =============================================================================
+# INGRESS CONFIGURATION
+# =============================================================================
+
+# Ingress settings
+ingress:
+  # Enable/disable ingress
+  enabled: true
+  
+  # Ingress class
+  className: "nginx"
+  
+  # Ingress annotations
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+  
+  # Ingress hosts
+  hosts:
+    - host: eks-cloudforge.local
+      paths:
+        - path: /
+          pathType: Prefix
+  
+  # TLS configuration (optional)
+  # tls:
+  #   - secretName: app-tls
+  #     hosts:
+  #       - eks-cloudforge.local
+
+# =============================================================================
+# AUTO-SCALING CONFIGURATION
+# =============================================================================
+
+# Horizontal Pod Autoscaler settings
+autoscaling:
+  # Enable/disable HPA
+  enabled: true
+  
+  # Minimum replicas
+  minReplicas: 1
+  
+  # Maximum replicas (limited by t3.micro resources)
+  maxReplicas: 4
+  
+  # Target CPU utilization percentage
+  targetCPUUtilizationPercentage: 70
+  
+  # Target memory utilization percentage
+  targetMemoryUtilizationPercentage: 80
+  
+  # Scale down behavior
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+
+# =============================================================================
+# CONFIGMAP CONFIGURATION
+# =============================================================================
+
+# ConfigMap settings
+configMap:
+  # Enable/disable configmap
+  enabled: false
+  
+  # ConfigMap data
+  data:
+    # LOG_LEVEL: "INFO"
+    # APP_ENVIRONMENT: "production"
+    # METRICS_ENABLED: "true"
+
+# =============================================================================
+# SECRETS CONFIGURATION
+# =============================================================================
+
+# Secrets settings
+secrets:
+  # Enable/disable secrets
+  enabled: false
+  
+  # Secret data (base64 encoded)
+  data:
+    # DATABASE_URL: "base64-encoded-value"
+    # API_KEY: "base64-encoded-value"
+
+# =============================================================================
+# PERSISTENT VOLUME CONFIGURATION
+# =============================================================================
+
+# Persistent volume settings
+persistence:
+  # Enable/disable persistence
+  enabled: false
+  
+  # Storage class
+  storageClass: ""
+  
+  # Access mode
+  accessMode: ReadWriteOnce
+  
+  # Storage size
+  size: 1Gi
+
+# =============================================================================
+# NETWORK POLICY CONFIGURATION
+# =============================================================================
+
+# Network policy settings
+networkPolicy:
+  # Enable/disable network policy
+  enabled: false
+  
+  # Ingress rules
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 5000
+
+# =============================================================================
+# SERVICE ACCOUNT CONFIGURATION
+# =============================================================================
+
+# Service account settings
+serviceAccount:
+  # Enable/disable service account
+  enabled: false
+  
+  # Service account name
+  name: ""
+  
+  # Service account annotations
+  annotations: {}
+  
+  # Service account labels
+  labels: {}
+
+# =============================================================================
+# POD DISRUPTION BUDGET CONFIGURATION
+# =============================================================================
+
+# Pod disruption budget settings
+podDisruptionBudget:
+  # Enable/disable PDB
+  enabled: true
+  
+  # Minimum available replicas
+  minAvailable: 1
+  
+  # Maximum unavailable replicas
+  maxUnavailable: 1
+
+# =============================================================================
+# MONITORING CONFIGURATION
+# =============================================================================
+
+# Monitoring settings
+monitoring:
+  # Enable/disable monitoring
+  enabled: true
+  
+  # ServiceMonitor for Prometheus
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    path: /metrics
+    port: 5000
+
+# =============================================================================
+# COST OPTIMIZATION SETTINGS
+# =============================================================================
+
+# Cost optimization settings
+costOptimization:
+  # Enable cost optimization features
+  enabled: true
+  
+  # Instance type
+  instanceType: "t3.micro"
+  
+  # Cost per month estimate
+  estimatedCostPerMonth: "$8.47"
+  
+  # Auto-scaling enabled
+  autoScaling: true
+  
+  # Resource limits enforced
+  resourceLimits: true
+  
+  # Monitoring enabled
+  monitoring: true
+
+# =============================================================================
+# SECURITY SETTINGS
+# =============================================================================
+
+# Security settings
+security:
+  # Run as non-root user
+  runAsNonRoot: true
+  
+  # Read-only root filesystem
+  readOnlyRootFilesystem: false
+  
+  # Allow privilege escalation
+  allowPrivilegeEscalation: false
+  
+  # Security context
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    capabilities:
+      drop:
+        - ALL
+
+# =============================================================================
+# DEBUGGING AND LOGGING
+# =============================================================================
+
+# Debugging and logging settings
+debugging:
+  # Enable debug mode
+  debug: false
+  
+  # Log level
+  logLevel: "INFO"
+  
+  # Enable verbose logging
+  verbose: false
+
+# =============================================================================
+# NOTES AND COMMENTS
+# =============================================================================
+
+# Notes:
+# - This chart is optimized for t3.micro instances
+# - Resource limits are set conservatively to prevent OOM
+# - Auto-scaling is enabled with reasonable limits
+# - Health checks are configured for Kubernetes
+# - Cost optimization features are enabled by default
+# - Security best practices are implemented 

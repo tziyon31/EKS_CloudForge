@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "eks-cloudforge-app.serviceName" . }}
+  labels:
+    {{- include "eks-cloudforge-app.labels" . | nindent 4 }}
+    {{- include "eks-cloudforge-app.serviceLabels" . | nindent 4 }}
+    {{- include "eks-cloudforge-app.costLabels" . | nindent 4 }}
+  annotations:
+    {{- include "eks-cloudforge-app.serviceAnnotations" . | nindent 4 }}
+    # Service annotations for AWS Load Balancer
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-internal: "false"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "Project=eks-cloudforge,Environment=dev,CostCenter=devops"
+    # Health check annotations
+    service.beta.kubernetes.io/aws-load-balancer-health-check-path: "/health"
+    service.beta.kubernetes.io/aws-load-balancer-health-check-port: "5000"
+    service.beta.kubernetes.io/aws-load-balancer-health-check-protocol: "HTTP"
+    service.beta.kubernetes.io/aws-load-balancer-health-check-interval: "30"
+    service.beta.kubernetes.io/aws-load-balancer-health-check-timeout: "5"
+    service.beta.kubernetes.io/aws-load-balancer-health-check-healthy-threshold: "2"
+    service.beta.kubernetes.io/aws-load-balancer-health-check-unhealthy-threshold: "3"
+    # Cost optimization annotations
+    cost-center: "devops"
+    instance-type: "t3-micro"
+    estimated-cost-per-month: "8.47"
+    auto-scaling: "enabled"
+spec:
+  # Service type (ClusterIP for internal access, LoadBalancer for external access)
+  type: {{ .Values.service.type | default "ClusterIP" }}
+  
+  # Session affinity (optional)
+  sessionAffinity: None
+  
+  # Session affinity config (optional)
+  # sessionAffinityConfig:
+  #   clientIP:
+  #     timeoutSeconds: 10800
+  
+  # Ports configuration
+  ports:
+    - name: http
+      port: {{ .Values.service.port | default 80 }}
+      targetPort: {{ .Values.service.targetPort | default 5000 }}
+      protocol: TCP
+      # Node port (only for NodePort and LoadBalancer types)
+      {{- if or (eq .Values.service.type "NodePort") (eq .Values.service.type "LoadBalancer") }}
+      nodePort: {{ .Values.service.nodePort | default 30080 }}
+      {{- end }}
+  
+  # Selector to match pods
+  selector:
+    {{- include "eks-cloudforge-app.selectorLabels" . | nindent 4 }}
+  
+  # External IPs (optional)
+  # externalIPs:
+  #   - 192.168.1.1
+  
+  # Load balancer source ranges (optional)
+  # loadBalancerSourceRanges:
+  #   - 10.0.0.0/8
+  #   - 172.16.0.0/12
+  #   - 192.168.0.0/16
+  
+  # Load balancer IP (optional)
+  # loadBalancerIP: 192.168.1.1
+  
+  # External name (for ExternalName type)
+  # externalName: example.com
+  
+  # Publish not ready addresses (optional)
+  publishNotReadyAddresses: false 

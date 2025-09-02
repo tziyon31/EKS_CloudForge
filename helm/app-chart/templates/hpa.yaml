@@ -1,0 +1,94 @@
+{{- if .Values.autoscaling.enabled -}}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "eks-cloudforge-app.hpaName" . }}
+  labels:
+    {{- include "eks-cloudforge-app.labels" . | nindent 4 }}
+    {{- include "eks-cloudforge-app.costLabels" . | nindent 4 }}
+  annotations:
+    {{- include "eks-cloudforge-app.annotations" . | nindent 4 }}
+    # HPA configuration annotations
+    autoscaling.kubernetes.io/target-cpu-utilization-percentage: "{{ .Values.autoscaling.targetCPUUtilizationPercentage | default 70 }}"
+    autoscaling.kubernetes.io/target-memory-utilization-percentage: "{{ .Values.autoscaling.targetMemoryUtilizationPercentage | default 80 }}"
+    # Cost optimization annotations
+    cost-center: "devops"
+    instance-type: "t3-micro"
+    estimated-cost-per-month: "8.47"
+    auto-scaling: "enabled"
+    resource-limits: "enforced"
+    # Monitoring annotations
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "80"
+    prometheus.io/path: "/metrics"
+spec:
+  # Scale target (the deployment to scale)
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "eks-cloudforge-app.fullname" . }}
+  
+  # Minimum number of replicas
+  minReplicas: {{ .Values.autoscaling.minReplicas | default 1 }}
+  
+  # Maximum number of replicas (limited by t3.micro resources)
+  maxReplicas: {{ .Values.autoscaling.maxReplicas | default 4 }}
+  
+  # Metrics for scaling
+  metrics:
+    # CPU utilization metric
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage | default 70 }}
+    
+    # Memory utilization metric
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage | default 80 }}
+    
+    # Custom metrics (optional)
+    # - type: Object
+    #   object:
+    #     metric:
+    #       name: requests-per-second
+    #     describedObject:
+    #       apiVersion: networking.k8s.io/v1
+    #       kind: Ingress
+    #       name: {{ include "eks-cloudforge-app.ingressName" . }}
+    #     target:
+    #       type: AverageValue
+    #       averageValue: 10k
+  
+  # Behavior configuration for scaling
+  behavior:
+    {{- include "eks-cloudforge-app.hpaBehavior" . | nindent 4 }}
+  
+  # Advanced scaling behavior (optional)
+  # behavior:
+  #   scaleDown:
+  #     stabilizationWindowSeconds: 300
+  #     policies:
+  #       - type: Percent
+  #         value: 10
+  #         periodSeconds: 60
+  #       - type: Pods
+  #         value: 1
+  #         periodSeconds: 60
+  #     selectPolicy: Min
+  #   scaleUp:
+  #     stabilizationWindowSeconds: 60
+  #     policies:
+  #       - type: Percent
+  #         value: 100
+  #         periodSeconds: 15
+  #       - type: Pods
+  #         value: 2
+  #         periodSeconds: 15
+  #     selectPolicy: Max
+{{- end }} 

@@ -1,0 +1,39 @@
+{{- if .Values.podDisruptionBudget.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "eks-cloudforge-app.pdbName" . }}
+  labels:
+    {{- include "eks-cloudforge-app.labels" . | nindent 4 }}
+    {{- include "eks-cloudforge-app.costLabels" . | nindent 4 }}
+  annotations:
+    {{- include "eks-cloudforge-app.annotations" . | nindent 4 }}
+    # PDB configuration annotations
+    pdb.kubernetes.io/min-available: "{{ .Values.podDisruptionBudget.minAvailable | default 1 }}"
+    pdb.kubernetes.io/max-unavailable: "{{ .Values.podDisruptionBudget.maxUnavailable | default 1 }}"
+    # Cost optimization annotations
+    cost-center: "devops"
+    instance-type: "t3-micro"
+    estimated-cost-per-month: "8.47"
+    high-availability: "enabled"
+    # Availability annotations
+    availability: "guaranteed"
+    maintenance-window: "controlled"
+spec:
+  # Selector to match pods
+  selector:
+    matchLabels:
+      {{- include "eks-cloudforge-app.selectorLabels" . | nindent 6 }}
+  
+  # Disruption budget configuration
+  {{- if .Values.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  {{- else if .Values.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  minAvailable: 1
+  {{- end }}
+  
+  # Unhealthy pod eviction policy (optional)
+  unhealthyPodEvictionPolicy: IfHealthyBudget
+{{- end }} 
