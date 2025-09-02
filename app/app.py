@@ -493,4 +493,4 @@ if __name__ == "__main__":
     # Start the Flask application
     app.run(host=host, port=port, debug=False)
 
-# Trigger pipeline - Terraform formatting fixes applied
+# Trigger pipeline - Helm template fixes applied and ready for full CI/CD run
