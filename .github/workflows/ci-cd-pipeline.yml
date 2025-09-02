@@ -220,7 +220,7 @@ jobs:
           bandit -r . -f json -o bandit-report.json -ll || true
           echo "## Security Analysis Results" >> $GITHUB_STEP_SUMMARY
           echo "Bandit security scan completed" >> $GITHUB_STEP_SUMMARY
-          
+
       - name: Run Safety (dependency vulnerabilities)
         run: |
           cd app
