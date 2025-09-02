@@ -103,4 +103,4 @@ data:
   INFRASTRUCTURE_NODE_TYPE: "t3.micro"
   INFRASTRUCTURE_MANAGED_BY: "Terraform"
   INFRASTRUCTURE_DEPLOYED_BY: "Helm"
-{{- end }} 
+{{- end }}

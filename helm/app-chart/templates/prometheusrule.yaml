@@ -125,4 +125,4 @@ spec:
             summary: "Low request rate detected"
             description: "Request rate is very low: {{ $value }} req/s"
             cost_impact: "May indicate application issues or low traffic"
-            runbook_url: "https://github.com/your-repo/runbooks/low-request-rate" 
+            runbook_url: "https://github.com/your-repo/runbooks/low-request-rate"

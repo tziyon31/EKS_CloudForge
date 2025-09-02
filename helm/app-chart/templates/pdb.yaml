@@ -36,4 +36,4 @@ spec:
   
   # Unhealthy pod eviction policy (optional)
   unhealthyPodEvictionPolicy: IfHealthyBudget
-{{- end }} 
+{{- end }}

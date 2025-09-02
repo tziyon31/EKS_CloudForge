@@ -70,4 +70,4 @@ spec:
   # externalName: example.com
   
   # Publish not ready addresses (optional)
-  publishNotReadyAddresses: false 
+  publishNotReadyAddresses: false

@@ -196,4 +196,4 @@ spec:
       #   options:
       #     - name: ndots
       #       value: "2"
-      #     - name: edns0 
+      #     - name: edns0
