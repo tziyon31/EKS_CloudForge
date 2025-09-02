@@ -39,9 +39,9 @@ helm.sh/chart: {{ include "eks-cloudforge-app.chart" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
 {{- if .Values.global.labels }}
-{{- toYaml .Values.global.labels }}
+{{- toYaml .Values.global.labels | nindent 0 }}
 {{- end }}
 {{- end }}
 

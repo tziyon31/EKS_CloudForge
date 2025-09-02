@@ -7,10 +7,7 @@ metadata:
     {{- include "eks-cloudforge-app.costLabels" . | nindent 4 }}
   annotations:
     {{- include "eks-cloudforge-app.annotations" . | nindent 4 }}
-    deployment.kubernetes.io/revision: "1"
-    cost-center: "devops"
-    instance-type: "t3-micro"
-    estimated-cost-per-month: "8.47"
+
 spec:
   # Number of replicas (optimized for t3.micro instances)
   replicas: {{ .Values.deployment.replicas | default 2 }}
