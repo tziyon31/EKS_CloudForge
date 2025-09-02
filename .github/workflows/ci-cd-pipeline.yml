@@ -410,7 +410,7 @@ jobs:
           if [ -z "$ECR_URL" ]; then
             ECR_URL="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
           fi
-          
+
           helm upgrade --install ${{ env.APP_NAME }} . \
             --namespace default \
             --create-namespace \

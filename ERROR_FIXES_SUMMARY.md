@@ -19,7 +19,7 @@ The issue was in the `secret.yaml` template where the `eks-cloudforge-app.secret
    ```yaml
    {{- include "eks-cloudforge-app.secretData" . | nindent 2 }}
    ```
-   
+
    With proper conditional logic:
    ```yaml
    {{- if .Values.secrets.data }}
