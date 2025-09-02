@@ -3,7 +3,7 @@
 EKS CloudForge Flask Application
 A lightweight, cost-optimized Flask app designed for t3.micro instances
 """
-# Updated for security fixes and pipeline improvements again and again and again and again
+#    Updated for security fixes and pipeline improvements again and again and again and again
 import json
 import os
 import platform
