@@ -121,17 +121,22 @@ jobs:
           cd app
           pip install -r requirements-test.txt
       
+      - name: Setup pre-commit
+        run: |
+          pre-commit install
+          pre-commit run --all-files
+      
       - name: Code formatting check
         run: |
           cd app
-          black --check --diff .
-          isort --check-only --diff .
+          black --check --diff . --config pyproject.toml
+          isort --check-only --diff . --settings-path pyproject.toml
       
       - name: Linting
         run: |
           cd app
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --config pyproject.toml
+          flake8 . --count --exit-zero --max-complexity=10 --statistics --config pyproject.toml
       
       - name: Run tests
         run: |
