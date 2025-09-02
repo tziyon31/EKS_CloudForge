@@ -72,9 +72,6 @@ prometheus:
     # Evaluation interval
     evaluationInterval: 30s
     
-    # External URL
-    externalUrl: ""
-    
     # Route prefix
     routePrefix: /
     
