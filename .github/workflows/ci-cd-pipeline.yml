@@ -327,6 +327,8 @@ jobs:
         run: |
           cd terraform
           terraform init
+          # Unset TF_WORKSPACE to avoid conflicts
+          unset TF_WORKSPACE
           # Check if workspace exists, create if it doesn't
           if ! terraform workspace list | grep -q "${{ env.TF_WORKSPACE }}"; then
             terraform workspace new ${{ env.TF_WORKSPACE }}
@@ -410,7 +412,7 @@ jobs:
           if [ -z "$ECR_URL" ]; then
             ECR_URL="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
           fi
-
+          
           helm upgrade --install ${{ env.APP_NAME }} . \
             --namespace default \
             --create-namespace \
@@ -572,6 +574,8 @@ jobs:
         run: |
           cd terraform
           terraform init
+          # Unset TF_WORKSPACE to avoid conflicts
+          unset TF_WORKSPACE
           # Check if workspace exists before trying to select it
           if terraform workspace list | grep -q "${{ env.TF_WORKSPACE }}"; then
             terraform workspace select ${{ env.TF_WORKSPACE }}
