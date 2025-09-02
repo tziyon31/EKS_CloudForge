@@ -7,7 +7,7 @@ import os
 import platform
 import time
 
-# Updated for fixes and pipeline improvements
+
 from datetime import datetime
 
 import psutil
