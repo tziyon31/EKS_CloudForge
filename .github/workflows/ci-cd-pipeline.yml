@@ -341,6 +341,7 @@ jobs:
 
       - name: Get ECR repository URL
         id: ecr-url
+        if: success()
         run: |
           cd terraform
           ECR_URL=$(terraform output -raw ecr_repository_url)
@@ -348,6 +349,7 @@ jobs:
 
       - name: Get EKS cluster name
         id: cluster-name
+        if: success()
         run: |
           cd terraform
           CLUSTER_NAME=$(terraform output -raw eks_cluster_name)
