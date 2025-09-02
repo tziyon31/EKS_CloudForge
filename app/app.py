@@ -6,8 +6,6 @@ A lightweight, cost-optimized Flask app designed for t3.micro instances
 import os
 import platform
 import time
-
-
 from datetime import datetime
 
 import psutil
