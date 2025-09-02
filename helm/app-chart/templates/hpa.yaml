@@ -1,5 +1,5 @@
-{{- if .Values.autoscaling.enabled }}
 apiVersion: autoscaling/v2
+{{- if .Values.autoscaling.enabled }}
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "eks-cloudforge-app.hpaName" . }}

@@ -38,16 +38,7 @@ line-length = 127
 target-version = ['py311']
 include = '\.pyi?$'
 extend-exclude = '''
-/(
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
+/(\.eggs|\.git|\.hg|\.mypy_cache|\.tox|\.venv|build|dist)/
 '''
 
 [tool.isort]

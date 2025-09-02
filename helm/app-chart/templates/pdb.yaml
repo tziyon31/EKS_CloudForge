@@ -1,5 +1,5 @@
-{{- if .Values.podDisruptionBudget.enabled }}
 apiVersion: policy/v1
+{{- if .Values.podDisruptionBudget.enabled }}
 kind: PodDisruptionBudget
 metadata:
   name: {{ include "eks-cloudforge-app.pdbName" . }}

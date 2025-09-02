@@ -1,5 +1,5 @@
-{{- if .Values.configMap.enabled }}
 apiVersion: v1
+{{- if .Values.configMap.enabled }}
 kind: ConfigMap
 metadata:
   name: {{ include "eks-cloudforge-app.configMapName" . }}

@@ -176,9 +176,6 @@ prometheus:
     # Log format
     logFormat: logfmt
     
-    # Log level
-    logLevel: info
-    
     # Min time
     minTime: ""
     

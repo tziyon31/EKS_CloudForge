@@ -575,4 +575,4 @@ After successful Helm deployment:
 
 ---
 
-**Your Helm chart is now ready for deployment!** 🚀 
+**Your Helm chart is now ready for deployment!** 🚀

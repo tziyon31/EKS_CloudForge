@@ -65,4 +65,4 @@ provider "kubernetes" {
 provider "helm" {
   # Configuration will be added after EKS cluster creation
   # This allows us to deploy Helm charts to our EKS cluster
-} 
+}

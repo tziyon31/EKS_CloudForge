@@ -3,21 +3,21 @@
 EKS CloudForge Flask Application
 A lightweight, cost-optimized Flask app designed for t3.micro instances
 """
-#    Updated for security fixes and pipeline improvements again and again and again and again
+# Updated for security fixes and pipeline improvements
+from datetime import datetime
 import json
 import os
 import platform
 import time
 
 import psutil
-from datetime import datetime
 from flask import Flask, Response, jsonify, render_template_string, request
 
 # Initialize Flask application
 app = Flask(__name__)
 
 # Application configuration
-app.config['JSON_SORT_KEYS'] = False  # Keep JSON order consistent
+app.config["JSON_SORT_KEYS"] = False  # Keep JSON order consistent
 
 # Global variables for monitoring
 START_TIME = datetime.now()
@@ -201,286 +201,295 @@ HTML_TEMPLATE = """
 </html>
 """
 
-@app.route('/')
+
+@app.route("/")
 def index():
-    """Main application page with status and information"""
+    """Main application page with status and information."""
     global REQUEST_COUNT
     REQUEST_COUNT += 1
-    
+
     # Calculate uptime
     uptime = datetime.now() - START_TIME
-    uptime_str = str(uptime).split('.')[0]  # Remove microseconds
-    
+    uptime_str = str(uptime).split(".")[0]  # Remove microseconds
+
     return render_template_string(
         HTML_TEMPLATE,
         request_count=REQUEST_COUNT,
         uptime=uptime_str,
-        start_time=START_TIME.strftime('%Y-%m-%d %H:%M:%S'),
+        start_time=START_TIME.strftime("%Y-%m-%d %H:%M:%S"),
         hostname=platform.node(),
     )
 
-@app.route('/health')
+
+@app.route("/health")
 def health():
-    """Health check endpoint for load balancers and monitoring"""
+    """Health check endpoint for load balancers and monitoring."""
     global REQUEST_COUNT
     REQUEST_COUNT += 1
-    
+
     return (
         jsonify(
             {
-                'status': 'healthy',
-                'timestamp': datetime.now().isoformat(),
-                'uptime': str(datetime.now() - START_TIME).split('.')[0],
-                'requests_processed': REQUEST_COUNT,
+                "status": "healthy",
+                "timestamp": datetime.now().isoformat(),
+                "uptime": str(datetime.now() - START_TIME).split(".")[0],
+                "requests_processed": REQUEST_COUNT,
             }
         ),
         200,
     )
 
-@app.route('/status')
+
+@app.route("/status")
 def status():
-    """Detailed application status and system information"""
+    """Detailed application status and system information."""
     global REQUEST_COUNT
     REQUEST_COUNT += 1
-    
+
     # Get system information
     cpu_percent = psutil.cpu_percent(interval=1)
     memory = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
-    
+    disk = psutil.disk_usage("/")
+
     return (
         jsonify(
             {
-                'application': {
-                    'name': 'EKS CloudForge',
-                    'version': '1.0.0',
-                    'status': 'running',
-                    'start_time': START_TIME.isoformat(),
-                    'uptime': str(datetime.now() - START_TIME).split('.')[0],
-                    'requests_processed': REQUEST_COUNT,
+                "application": {
+                    "name": "EKS CloudForge",
+                    "version": "1.0.0",
+                    "status": "running",
+                    "start_time": START_TIME.isoformat(),
+                    "uptime": str(datetime.now() - START_TIME).split(".")[0],
+                    "requests_processed": REQUEST_COUNT,
                 },
-                'system': {
-                    'hostname': platform.node(),
-                    'platform': platform.platform(),
-                    'python_version': platform.python_version(),
-                    'cpu_count': psutil.cpu_count(),
-                    'cpu_percent': cpu_percent,
-                    'memory_total_gb': round(memory.total / (1024**3), 2),
-                    'memory_available_gb': round(memory.available / (1024**3), 2),
-                    'memory_percent': memory.percent,
-                    'disk_total_gb': round(disk.total / (1024**3), 2),
-                    'disk_free_gb': round(disk.free / (1024**3), 2),
-                    'disk_percent': round((disk.used / disk.total) * 100, 2),
+                "system": {
+                    "hostname": platform.node(),
+                    "platform": platform.platform(),
+                    "python_version": platform.python_version(),
+                    "cpu_count": psutil.cpu_count(),
+                    "cpu_percent": cpu_percent,
+                    "memory_total_gb": round(memory.total / (1024**3), 2),
+                    "memory_available_gb": round(memory.available / (1024**3), 2),
+                    "memory_percent": memory.percent,
+                    "disk_total_gb": round(disk.total / (1024**3), 2),
+                    "disk_free_gb": round(disk.free / (1024**3), 2),
+                    "disk_percent": round((disk.used / disk.total) * 100, 2),
                 },
-                'environment': {
-                    'instance_type': 't3.micro',
-                    'region': os.environ.get('AWS_REGION', 'unknown'),
-                    'cluster_name': os.environ.get('EKS_CLUSTER_NAME', 'unknown'),
-                    'pod_name': os.environ.get('POD_NAME', 'unknown'),
-                    'namespace': os.environ.get('POD_NAMESPACE', 'unknown'),
+                "environment": {
+                    "instance_type": "t3.micro",
+                    "region": os.environ.get("AWS_REGION", "unknown"),
+                    "cluster_name": os.environ.get("EKS_CLUSTER_NAME", "unknown"),
+                    "pod_name": os.environ.get("POD_NAME", "unknown"),
+                    "namespace": os.environ.get("POD_NAMESPACE", "unknown"),
                 },
             }
         ),
         200,
     )
 
-@app.route('/metrics')
+
+@app.route("/metrics")
 def metrics():
-    """System metrics for monitoring and alerting"""
+    """System metrics for monitoring and alerting."""
     global REQUEST_COUNT
     REQUEST_COUNT += 1
-    
+
     # Get detailed metrics
     cpu_percent = psutil.cpu_percent(interval=1)
     memory = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
-    
+    disk = psutil.disk_usage("/")
+
     # Calculate request rate (requests per minute)
     uptime_minutes = (datetime.now() - START_TIME).total_seconds() / 60
     request_rate = REQUEST_COUNT / uptime_minutes if uptime_minutes > 0 else 0
-    
+
     return (
         jsonify(
             {
-                'metrics': {
-                    'cpu_usage_percent': cpu_percent,
-                    'memory_usage_percent': memory.percent,
-                    'memory_available_mb': round(memory.available / (1024**2), 2),
-                    'disk_usage_percent': round((disk.used / disk.total) * 100, 2),
-                    'disk_free_mb': round(disk.free / (1024**2), 2),
-                    'requests_total': REQUEST_COUNT,
-                    'requests_per_minute': round(request_rate, 2),
-                    'uptime_seconds': (datetime.now() - START_TIME).total_seconds(),
+                "metrics": {
+                    "cpu_usage_percent": cpu_percent,
+                    "memory_usage_percent": memory.percent,
+                    "memory_available_mb": round(memory.available / (1024**2), 2),
+                    "disk_usage_percent": round((disk.used / disk.total) * 100, 2),
+                    "disk_free_mb": round(disk.free / (1024**2), 2),
+                    "requests_total": REQUEST_COUNT,
+                    "requests_per_minute": round(request_rate, 2),
+                    "uptime_seconds": (datetime.now() - START_TIME).total_seconds(),
                 },
-                'alerts': {
-                    'cpu_high': cpu_percent > 80,
-                    'memory_high': memory.percent > 80,
-                    'disk_high': (disk.used / disk.total) * 100 > 80,
+                "alerts": {
+                    "cpu_high": cpu_percent > 80,
+                    "memory_high": memory.percent > 80,
+                    "disk_high": (disk.used / disk.total) * 100 > 80,
                 },
             }
         ),
         200,
     )
 
-@app.route('/prometheus')
+
+@app.route("/prometheus")
 def prometheus_metrics():
-    """Prometheus-compatible metrics endpoint"""
+    """Prometheus-compatible metrics endpoint."""
     global REQUEST_COUNT
     REQUEST_COUNT += 1
-    
+
     # Get system metrics
     cpu_percent = psutil.cpu_percent(interval=1)
     memory = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
-    
+    disk = psutil.disk_usage("/")
+
     # Calculate request rate
     uptime_seconds = (datetime.now() - START_TIME).total_seconds()
     request_rate = REQUEST_COUNT / uptime_seconds if uptime_seconds > 0 else 0
-    
+
     # Build Prometheus metrics
     metrics = []
-    
+
     # Application metrics
-    metrics.append(f"# HELP app_requests_total Total number of requests")
-    metrics.append(f"# TYPE app_requests_total counter")
+    metrics.append("# HELP app_requests_total Total number of requests")
+    metrics.append("# TYPE app_requests_total counter")
     metrics.append(f"app_requests_total {REQUEST_COUNT}")
-    
-    metrics.append(f"# HELP app_uptime_seconds Application uptime in seconds")
-    metrics.append(f"# TYPE app_uptime_seconds gauge")
+
+    metrics.append("# HELP app_uptime_seconds Application uptime in seconds")
+    metrics.append("# TYPE app_uptime_seconds gauge")
     metrics.append(f"app_uptime_seconds {uptime_seconds}")
-    
+
     # System metrics
-    metrics.append(f"# HELP container_cpu_usage_seconds_total Total CPU usage in seconds")
-    metrics.append(f"# TYPE container_cpu_usage_seconds_total counter")
-    metrics.append(f"container_cpu_usage_seconds_total{{container=\"eks-cloudforge-app\"}} {cpu_percent / 100}")
-    
-    metrics.append(f"# HELP container_memory_usage_bytes Memory usage in bytes")
-    metrics.append(f"# TYPE container_memory_usage_bytes gauge")
-    metrics.append(f"container_memory_usage_bytes{{container=\"eks-cloudforge-app\"}} {memory.used}")
-    
-    metrics.append(f"# HELP container_fs_usage_bytes Filesystem usage in bytes")
-    metrics.append(f"# TYPE container_fs_usage_bytes gauge")
-    metrics.append(f"container_fs_usage_bytes{{container=\"eks-cloudforge-app\"}} {disk.used}")
-    
-    metrics.append(f"# HELP container_fs_limit_bytes Filesystem limit in bytes")
-    metrics.append(f"# TYPE container_fs_limit_bytes gauge")
-    metrics.append(f"container_fs_limit_bytes{{container=\"eks-cloudforge-app\"}} {disk.total}")
-    
+    metrics.append("# HELP container_cpu_usage_seconds_total Total CPU usage in seconds")
+    metrics.append("# TYPE container_cpu_usage_seconds_total counter")
+    metrics.append(f'container_cpu_usage_seconds_total{{container="eks-cloudforge-app"}} {cpu_percent / 100}')
+
+    metrics.append("# HELP container_memory_usage_bytes Memory usage in bytes")
+    metrics.append("# TYPE container_memory_usage_bytes gauge")
+    metrics.append(f'container_memory_usage_bytes{{container="eks-cloudforge-app"}} {memory.used}')
+
+    metrics.append("# HELP container_fs_usage_bytes Filesystem usage in bytes")
+    metrics.append("# TYPE container_fs_usage_bytes gauge")
+    metrics.append(f'container_fs_usage_bytes{{container="eks-cloudforge-app"}} {disk.used}')
+
+    metrics.append("# HELP container_fs_limit_bytes Filesystem limit in bytes")
+    metrics.append("# TYPE container_fs_limit_bytes gauge")
+    metrics.append(f'container_fs_limit_bytes{{container="eks-cloudforge-app"}} {disk.total}')
+
     # HTTP metrics (simulated for demo)
-    metrics.append(f"# HELP http_requests_total Total HTTP requests")
-    metrics.append(f"# TYPE http_requests_total counter")
-    metrics.append(f"http_requests_total{{job=\"eks-cloudforge-app\",status=\"200\"}} {REQUEST_COUNT}")
-    
-    metrics.append(f"# HELP http_request_duration_seconds_sum Sum of HTTP request durations")
-    metrics.append(f"# TYPE http_request_duration_seconds_sum counter")
-    metrics.append(f"http_request_duration_seconds_sum{{job=\"eks-cloudforge-app\"}} {REQUEST_COUNT * 0.1}")
-    
-    metrics.append(f"# HELP http_request_duration_seconds_count Count of HTTP requests")
-    metrics.append(f"# TYPE http_request_duration_seconds_count counter")
-    metrics.append(f"http_request_duration_seconds_count{{job=\"eks-cloudforge-app\"}} {REQUEST_COUNT}")
-    
+    metrics.append("# HELP http_requests_total Total HTTP requests")
+    metrics.append("# TYPE http_requests_total counter")
+    metrics.append(f'http_requests_total{{job="eks-cloudforge-app",status="200"}} {REQUEST_COUNT}')
+
+    metrics.append("# HELP http_request_duration_seconds_sum Sum of HTTP request durations")
+    metrics.append("# TYPE http_request_duration_seconds_sum counter")
+    metrics.append(f'http_request_duration_seconds_sum{{job="eks-cloudforge-app"}} {REQUEST_COUNT * 0.1}')
+
+    metrics.append("# HELP http_request_duration_seconds_count Count of HTTP requests")
+    metrics.append("# TYPE http_request_duration_seconds_count counter")
+    metrics.append(f'http_request_duration_seconds_count{{job="eks-cloudforge-app"}} {REQUEST_COUNT}')
+
     # Cost estimation metrics
     estimated_cost_per_hour = (cpu_percent / 100) * 0.0001  # Rough cost estimation
-    metrics.append(f"# HELP app_cost_per_hour Estimated cost per hour")
-    metrics.append(f"# TYPE app_cost_per_hour gauge")
-    metrics.append(f"app_cost_per_hour{{job=\"eks-cloudforge-app\"}} {estimated_cost_per_hour}")
-    
-    # Add timestamp
-    metrics.append(f"# HELP app_metrics_timestamp Last metrics collection timestamp")
-    metrics.append(f"# TYPE app_metrics_timestamp gauge")
-    metrics.append(f"app_metrics_timestamp {int(time.time())}")
-    
-    return Response('\n'.join(metrics), mimetype='text/plain')
+    metrics.append("# HELP app_cost_per_hour Estimated cost per hour")
+    metrics.append("# TYPE app_cost_per_hour gauge")
+    metrics.append(f'app_cost_per_hour{{job="eks-cloudforge-app"}} {estimated_cost_per_hour}')
 
-@app.route('/api/info')
+    # Add timestamp
+    metrics.append("# HELP app_metrics_timestamp Last metrics collection timestamp")
+    metrics.append("# TYPE app_metrics_timestamp gauge")
+    metrics.append(f"app_metrics_timestamp {int(time.time())}")
+
+    return Response("\n".join(metrics), mimetype="text/plain")
+
+
+@app.route("/api/info")
 def api_info():
-    """API information and documentation"""
+    """API information and documentation."""
     global REQUEST_COUNT
     REQUEST_COUNT += 1
-    
+
     return (
         jsonify(
             {
-                'api': {
-                    'name': 'EKS CloudForge API',
-                    'version': '1.0.0',
-                    'description': 'Lightweight Flask API for DevOps pipeline demonstration',
-                    'endpoints': {
-                        'GET /': 'Main application page',
-                        'GET /health': 'Health check endpoint',
-                        'GET /status': 'Detailed application status',
-                        'GET /metrics': 'System metrics (JSON)',
-                        'GET /prometheus': 'Prometheus metrics (text/plain)',
-                        'GET /api/info': 'API information (this endpoint)',
+                "api": {
+                    "name": "EKS CloudForge API",
+                    "version": "1.0.0",
+                    "description": "Lightweight Flask API for DevOps pipeline demonstration",
+                    "endpoints": {
+                        "GET /": "Main application page",
+                        "GET /health": "Health check endpoint",
+                        "GET /status": "Detailed application status",
+                        "GET /metrics": "System metrics (JSON)",
+                        "GET /prometheus": "Prometheus metrics (text/plain)",
+                        "GET /api/info": "API information (this endpoint)",
                     },
                 },
-                'deployment': {
-                    'containerized': True,
-                    'orchestrator': 'Kubernetes (EKS)',
-                    'instance_type': 't3.micro',
-                    'cost_optimized': True,
-                    'auto_scaling': True,
+                "deployment": {
+                    "containerized": True,
+                    "orchestrator": "Kubernetes (EKS)",
+                    "instance_type": "t3.micro",
+                    "cost_optimized": True,
+                    "auto_scaling": True,
                 },
             }
         ),
         200,
     )
 
+
 @app.errorhandler(404)
 def not_found(error):
-    """Handle 404 errors gracefully"""
+    """Handle 404 errors gracefully."""
     global REQUEST_COUNT
     REQUEST_COUNT += 1
-    
+
     return (
         jsonify(
             {
-                'error': 'Not Found',
-                'message': 'The requested endpoint does not exist',
-                'available_endpoints': [
-                    '/',
-                    '/health',
-                    '/status',
-                    '/metrics',
-                    '/prometheus',
-                    '/api/info',
+                "error": "Not Found",
+                "message": "The requested endpoint does not exist",
+                "available_endpoints": [
+                    "/",
+                    "/health",
+                    "/status",
+                    "/metrics",
+                    "/prometheus",
+                    "/api/info",
                 ],
             }
         ),
         404,
     )
 
+
 @app.errorhandler(500)
 def internal_error(error):
-    """Handle 500 errors gracefully"""
+    """Handle 500 errors gracefully."""
     global REQUEST_COUNT
     REQUEST_COUNT += 1
-    
+
     return (
         jsonify(
             {
-                'error': 'Internal Server Error',
-                'message': 'An unexpected error occurred',
-                'timestamp': datetime.now().isoformat(),
+                "error": "Internal Server Error",
+                "message": "An unexpected error occurred",
+                "timestamp": datetime.now().isoformat(),
             }
         ),
         500,
     )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Get port from environment variable or default to 5000
-    port = int(os.environ.get('PORT', 5000))
-    
+    port = int(os.environ.get("PORT", 5000))
+
     # Get host from environment variable or default to 0.0.0.0
-    host = os.environ.get('HOST', '0.0.0.0')
-    
-    print(f"🚀 Starting EKS CloudForge Flask Application")
+    host = os.environ.get("HOST", "0.0.0.0")
+
+    print("🚀 Starting EKS CloudForge Flask Application")
     print(f"📍 Host: {host}")
     print(f"🔌 Port: {port}")
-    print(f"💻 Instance Type: t3.micro")
-    print(f"💰 Cost Optimized: Yes")
-    print(f"🔄 Auto Scaling: Enabled")
-    print(f"📊 Monitoring: Prometheus metrics available at /prometheus")
-    
+    print("💻 Instance Type: t3.micro")
+    print("💰 Cost Optimized: Yes")
+    print("🔄 Auto Scaling: Enabled")
+    print("📊 Monitoring: Prometheus metrics available at /prometheus")
+
     # Start the Flask application
     app.run(host=host, port=port, debug=False) 
