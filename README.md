@@ -81,3 +81,4 @@ Our infrastructure will include:
 - Regular security updates and monitoring
 - **Enhanced Security Scanning**: Bandit, Safety, and Trivy integration
 - **Code Quality**: Automated formatting with Black, isort, and flake8
+- **Dependency Management**: Flexible version constraints for better compatibility
