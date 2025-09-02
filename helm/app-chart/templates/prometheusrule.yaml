@@ -28,7 +28,7 @@ spec:
             description: "Container {{ $labels.container }} has high CPU usage: {{ $value }}%"
             cost_impact: "May trigger auto-scaling and increase costs"
             runbook_url: "https://github.com/your-repo/runbooks/high-cpu-usage"
-        
+
         # High Memory Usage Alert
         - alert: HighMemoryUsage
           expr: container_memory_usage_bytes{container="eks-cloudforge-app"} > 800000000
@@ -42,7 +42,7 @@ spec:
             description: "Container {{ $labels.container }} has high memory usage: {{ $value | humanize }}B"
             cost_impact: "May trigger auto-scaling and increase costs"
             runbook_url: "https://github.com/your-repo/runbooks/high-memory-usage"
-        
+
         # Pod Down Alert
         - alert: PodDown
           expr: up{job="eks-cloudforge-app"} == 0
@@ -56,7 +56,7 @@ spec:
             description: "Pod {{ $labels.pod }} is down"
             cost_impact: "Service unavailable - potential revenue loss"
             runbook_url: "https://github.com/your-repo/runbooks/pod-down"
-        
+
         # High Response Time Alert
         - alert: HighResponseTime
           expr: rate(http_request_duration_seconds_sum{job="eks-cloudforge-app"}[5m]) / rate(http_request_duration_seconds_count{job="eks-cloudforge-app"}[5m]) > 2
@@ -70,7 +70,7 @@ spec:
             description: "Response time is high for {{ $labels.instance }}: {{ $value }}s"
             cost_impact: "Poor user experience may affect business"
             runbook_url: "https://github.com/your-repo/runbooks/high-response-time"
-        
+
         # High Error Rate Alert
         - alert: HighErrorRate
           expr: rate(http_requests_total{job="eks-cloudforge-app", status=~"5.."}[5m]) / rate(http_requests_total{job="eks-cloudforge-app"}[5m]) * 100 > 5
@@ -84,7 +84,7 @@ spec:
             description: "Error rate is high: {{ $value }}%"
             cost_impact: "Service quality issues may affect business"
             runbook_url: "https://github.com/your-repo/runbooks/high-error-rate"
-        
+
         # High Cost Alert
         - alert: HighCost
           expr: increase(container_cpu_usage_seconds_total{container="eks-cloudforge-app"}[1h]) > 3600
@@ -98,7 +98,7 @@ spec:
             description: "High CPU usage over 1 hour may indicate cost issues"
             cost_impact: "May exceed budget - review resource usage"
             runbook_url: "https://github.com/your-repo/runbooks/high-cost"
-        
+
         # Disk Usage Alert
         - alert: HighDiskUsage
           expr: container_fs_usage_bytes{container="eks-cloudforge-app"} / container_fs_limit_bytes{container="eks-cloudforge-app"} * 100 > 80
@@ -112,7 +112,7 @@ spec:
             description: "Disk usage is high: {{ $value }}%"
             cost_impact: "May cause application failures"
             runbook_url: "https://github.com/your-repo/runbooks/high-disk-usage"
-        
+
         # Low Request Rate Alert (Potential Issues)
         - alert: LowRequestRate
           expr: rate(http_requests_total{job="eks-cloudforge-app"}[5m]) < 0.1

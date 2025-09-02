@@ -9,7 +9,7 @@
 terraform {
   # Specify the required Terraform version for consistency
   required_version = ">= 1.0"
-  
+
   # Configure the required providers and their versions
   required_providers {
     # AWS Provider - for creating AWS resources (EC2, VPC, EKS, etc.)
@@ -17,13 +17,13 @@ terraform {
       source  = "hashicorp/aws"  # Official AWS provider from HashiCorp
       version = "~> 5.0"         # Use version 5.x (latest stable)
     }
-    
+
     # Kubernetes Provider - for managing Kubernetes resources
     kubernetes = {
       source  = "hashicorp/kubernetes"  # Official Kubernetes provider
       version = "~> 2.0"               # Use version 2.x
     }
-    
+
     # Helm Provider - for deploying Helm charts
     helm = {
       source  = "hashicorp/helm"  # Official Helm provider
@@ -38,7 +38,7 @@ provider "aws" {
   # AWS Region where we'll create our resources
   # Using us-east-1 (N. Virginia) as it's cost-effective and has all services
   region = var.aws_region
-  
+
   # Default tags that will be applied to all resources
   # This helps with cost tracking and resource management
   default_tags {

@@ -46,79 +46,79 @@ print_error() {
 
 check_prerequisites() {
     print_header "Checking Prerequisites"
-    
+
     # Check if Docker is installed and running
     if ! command -v docker &> /dev/null; then
         print_error "Docker is not installed"
         exit 1
     fi
-    
+
     if ! docker info &> /dev/null; then
         print_error "Docker is not running"
         exit 1
     fi
-    
+
     print_success "Docker is installed and running"
-    
+
     # Check if AWS CLI is installed
     if ! command -v aws &> /dev/null; then
         print_error "AWS CLI is not installed"
         exit 1
     fi
-    
+
     print_success "AWS CLI is installed"
-    
+
     # Check if we're authenticated with AWS
     if ! aws sts get-caller-identity &> /dev/null; then
         print_error "Not authenticated with AWS"
         print_warning "Run: aws configure"
         exit 1
     fi
-    
+
     print_success "Authenticated with AWS"
 }
 
 get_ecr_repo_url() {
     print_header "Getting ECR Repository URL"
-    
+
     # Try to get ECR repo URL from Terraform output
     if [ -f "../terraform/terraform.tfstate" ]; then
         ECR_REPO_URL=$(cd ../terraform && terraform output -raw ecr_repository_url 2>/dev/null || echo "")
     fi
-    
+
     if [ -z "$ECR_REPO_URL" ]; then
         print_warning "ECR repository URL not found in Terraform output"
         print_warning "Please provide the ECR repository URL:"
         read -p "ECR Repository URL: " ECR_REPO_URL
     fi
-    
+
     if [ -z "$ECR_REPO_URL" ]; then
         print_error "ECR repository URL is required"
         exit 1
     fi
-    
+
     print_success "ECR Repository URL: $ECR_REPO_URL"
 }
 
 build_image() {
     print_header "Building Docker Image"
-    
+
     echo "Building $APP_NAME:$IMAGE_TAG..."
-    
+
     # Build the image with detailed output
     docker build \
         --tag "$APP_NAME:$IMAGE_TAG" \
         --file Dockerfile \
         --progress=plain \
         .
-    
+
     if [ $? -eq 0 ]; then
         print_success "Image built successfully"
-        
+
         # Show image size
         IMAGE_SIZE=$(docker images $APP_NAME:$IMAGE_TAG --format "table {{.Size}}" | tail -n 1)
         echo "Image size: $IMAGE_SIZE"
-        
+
         # Show image details
         echo "Image details:"
         docker images $APP_NAME:$IMAGE_TAG
@@ -130,19 +130,19 @@ build_image() {
 
 test_image_locally() {
     print_header "Testing Image Locally"
-    
+
     echo "Starting container for testing..."
-    
+
     # Run container in background
     CONTAINER_ID=$(docker run -d -p 5000:5000 --name test-$APP_NAME $APP_NAME:$IMAGE_TAG)
-    
+
     if [ $? -eq 0 ]; then
         print_success "Container started successfully"
-        
+
         # Wait for application to start
         echo "Waiting for application to start..."
         sleep 10
-        
+
         # Test health endpoint
         echo "Testing health endpoint..."
         if curl -f http://localhost:5000/health &> /dev/null; then
@@ -150,7 +150,7 @@ test_image_locally() {
         else
             print_error "Health endpoint failed"
         fi
-        
+
         # Test main endpoint
         echo "Testing main endpoint..."
         if curl -f http://localhost:5000/ &> /dev/null; then
@@ -158,16 +158,16 @@ test_image_locally() {
         else
             print_error "Main endpoint failed"
         fi
-        
+
         # Show container logs
         echo "Container logs:"
         docker logs $CONTAINER_ID --tail 20
-        
+
         # Stop and remove test container
         echo "Cleaning up test container..."
         docker stop $CONTAINER_ID
         docker rm $CONTAINER_ID
-        
+
         print_success "Local testing completed"
     else
         print_error "Failed to start test container"
@@ -177,12 +177,12 @@ test_image_locally() {
 
 login_to_ecr() {
     print_header "Logging into ECR"
-    
+
     echo "Logging into ECR repository..."
-    
+
     aws ecr get-login-password --region $AWS_REGION | \
         docker login --username AWS --password-stdin $ECR_REPO_URL
-    
+
     if [ $? -eq 0 ]; then
         print_success "Successfully logged into ECR"
     else
@@ -193,22 +193,22 @@ login_to_ecr() {
 
 tag_and_push_image() {
     print_header "Tagging and Pushing Image"
-    
+
     # Tag image for ECR
     echo "Tagging image for ECR..."
     docker tag $APP_NAME:$IMAGE_TAG $ECR_REPO_URL:$IMAGE_TAG
-    
+
     if [ $? -eq 0 ]; then
         print_success "Image tagged successfully"
     else
         print_error "Failed to tag image"
         exit 1
     fi
-    
+
     # Push image to ECR
     echo "Pushing image to ECR..."
     docker push $ECR_REPO_URL:$IMAGE_TAG
-    
+
     if [ $? -eq 0 ]; then
         print_success "Image pushed successfully to ECR"
         echo "Image URL: $ECR_REPO_URL:$IMAGE_TAG"
@@ -220,7 +220,7 @@ tag_and_push_image() {
 
 show_resource_usage() {
     print_header "Resource Usage Information"
-    
+
     echo "Application Resource Usage (t3.micro optimized):"
     echo "  - Image size: ~61MB"
     echo "  - Runtime memory: ~50-100MB"
@@ -273,4 +273,4 @@ echo "2. Set up monitoring and alerting"
 echo "3. Configure auto-scaling"
 echo ""
 
-print_success "🎉 Success! Your cost-optimized Flask app is ready for production!" 
+print_success "🎉 Success! Your cost-optimized Flask app is ready for production!"

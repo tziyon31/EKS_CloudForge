@@ -24,7 +24,7 @@ spec:
   selector:
     matchLabels:
       {{- include "eks-cloudforge-app.selectorLabels" . | nindent 6 }}
-  
+
   # Disruption budget configuration
   {{- if .Values.podDisruptionBudget.minAvailable }}
   minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
@@ -33,7 +33,7 @@ spec:
   {{- else }}
   minAvailable: 1
   {{- end }}
-  
+
   # Unhealthy pod eviction policy (optional)
   unhealthyPodEvictionPolicy: IfHealthyBudget
 {{- end }}

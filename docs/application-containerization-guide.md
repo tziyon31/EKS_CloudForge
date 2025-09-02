@@ -327,4 +327,4 @@ After successful containerization:
 
 ---
 
-**The application is now ready for deployment to EKS!** 🚀 
+**The application is now ready for deployment to EKS!** 🚀

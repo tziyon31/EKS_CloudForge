@@ -11,16 +11,16 @@
 global:
   # Default image tag
   imageTag: "v2.47.0"
-  
+
   # Default image repository
   imageRepository: "prom/prometheus"
-  
+
   # Default image pull policy
   imagePullPolicy: "IfNotPresent"
-  
+
   # Default image pull secrets
   imagePullSecrets: []
-  
+
   # Default service account
   serviceAccount:
     # Specifies whether a service account should be created
@@ -30,16 +30,16 @@ global:
     # The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
     name: ""
-  
+
   # Default pod annotations
   podAnnotations: {}
-  
+
   # Default pod security context
   podSecurityContext:
     fsGroup: 65534
     runAsNonRoot: true
     runAsUser: 65534
-  
+
   # Default container security context
   securityContext:
     allowPrivilegeEscalation: false
@@ -59,22 +59,22 @@ prometheus:
   prometheusSpec:
     # Retention period
     retention: 7d
-    
+
     # Retention size
     retentionSize: "2GB"
-    
+
     # Log level
     logLevel: info
-    
+
     # Scrape interval
     scrapeInterval: 30s
-    
+
     # Evaluation interval
     evaluationInterval: 30s
-    
+
     # Route prefix
     routePrefix: /
-    
+
     # Storage spec
     storageSpec:
       volumeClaimTemplate:
@@ -84,7 +84,7 @@ prometheus:
           resources:
             requests:
               storage: 5Gi
-    
+
     # Resources (optimized for t3.micro)
     resources:
       requests:
@@ -93,7 +93,7 @@ prometheus:
       limits:
         cpu: 200m
         memory: 256Mi
-    
+
     # Pod metadata
     podMetadata:
       labels:
@@ -102,27 +102,27 @@ prometheus:
         cost-center: "monitoring"
       annotations:
         prometheus.io/scrape: "false"
-    
+
     # Service monitor selector
     serviceMonitorSelector:
       matchLabels:
         app: eks-cloudforge-app
-    
+
     # Pod monitor selector
     podMonitorSelector:
       matchLabels:
         app: eks-cloudforge-app
-    
+
     # Rule selector
     ruleSelector:
       matchLabels:
         app: eks-cloudforge-app
-    
+
     # Alert manager selector
     alertmanagerConfigSelector:
       matchLabels:
         app: eks-cloudforge-app
-    
+
     # Additional scrape configs
     additionalScrapeConfigs:
       - job_name: 'kubernetes-pods'
@@ -152,48 +152,48 @@ prometheus:
           - source_labels: [__meta_kubernetes_pod_container_name]
             action: replace
             target_label: container
-    
+
     # Enable features
     enableFeatures: []
-    
+
     # Disable features
     disableFeatures: []
-    
+
     # External labels
     externalLabels:
       cluster: eks-cloudforge
       environment: dev
-    
+
     # External URL
     externalUrl: ""
-    
+
     # Listen local
     listenLocal: false
-    
+
     # Listen address
     listenAddress: ""
-    
+
     # Log format
     logFormat: logfmt
-    
+
     # Min time
     minTime: ""
-    
+
     # Max time
     maxTime: ""
-    
+
     # Query timeout
     queryTimeout: 2m
-    
+
     # Query concurrency
     queryConcurrency: 50
-    
+
     # Query max samples
     queryMaxSamples: 50000000
-    
+
     # Query lookback delta
     queryLookbackDelta: 5m
-    
+
     # Rules
     rules:
       alert:
@@ -212,7 +212,7 @@ prometheus:
               annotations:
                 summary: "High CPU usage detected"
                 description: "Container {{ $labels.container }} has high CPU usage"
-            
+
             - alert: HighMemoryUsage
               expr: container_memory_usage_bytes{container="eks-cloudforge-app"} > 800000000
               for: 5m
@@ -221,7 +221,7 @@ prometheus:
               annotations:
                 summary: "High memory usage detected"
                 description: "Container {{ $labels.container }} has high memory usage"
-            
+
             - alert: PodDown
               expr: up{job="eks-cloudforge-app"} == 0
               for: 1m
@@ -230,7 +230,7 @@ prometheus:
               annotations:
                 summary: "Pod is down"
                 description: "Pod {{ $labels.pod }} is down"
-            
+
             - alert: HighResponseTime
               expr: http_request_duration_seconds{job="eks-cloudforge-app"} > 2
               for: 5m
@@ -251,7 +251,7 @@ alertmanager:
     image:
       repository: prom/alertmanager
       tag: v0.26.0
-    
+
     # Resources (optimized for t3.micro)
     resources:
       requests:
@@ -260,7 +260,7 @@ alertmanager:
       limits:
         cpu: 100m
         memory: 128Mi
-    
+
     # Storage
     storage:
       volumeClaimTemplate:
@@ -270,25 +270,25 @@ alertmanager:
           resources:
             requests:
               storage: 1Gi
-    
+
     # Config
     config:
       global:
         resolve_timeout: 5m
         slack_api_url: ""
-      
+
       route:
         group_by: ['alertname']
         group_wait: 10s
         group_interval: 10s
         repeat_interval: 1h
         receiver: 'web.hook'
-      
+
       receivers:
         - name: 'web.hook'
           webhook_configs:
             - url: 'http://127.0.0.1:5001/'
-      
+
       inhibit_rules:
         - source_match:
             severity: 'critical'
@@ -303,12 +303,12 @@ alertmanager:
 grafana:
   # Grafana configuration
   enabled: true
-  
+
   # Image
   image:
     repository: grafana/grafana
     tag: 10.1.0
-  
+
   # Resources (optimized for t3.micro)
   resources:
     requests:
@@ -317,24 +317,24 @@ grafana:
     limits:
       cpu: 200m
       memory: 256Mi
-  
+
   # Storage
   persistence:
     enabled: true
     storageClassName: gp2
     accessMode: ReadWriteOnce
     size: 2Gi
-  
+
   # Admin user
   adminUser: admin
   adminPassword: admin123
-  
+
   # Service
   service:
     type: ClusterIP
     port: 80
     targetPort: 3000
-  
+
   # Ingress
   ingress:
     enabled: true
@@ -347,7 +347,7 @@ grafana:
         paths:
           - path: /
             pathType: Prefix
-  
+
   # Dashboards
   dashboards:
     default:
@@ -356,7 +356,7 @@ grafana:
         revision: 22
         datasource: Prometheus
         folder: ""
-  
+
   # Datasources
   datasources:
     datasources.yaml:
@@ -450,7 +450,7 @@ rules:
               summary: "High CPU usage detected"
               description: "Container {{ $labels.container }} has high CPU usage"
               cost_impact: "May trigger auto-scaling"
-          
+
           - alert: HighMemoryUsage
             expr: container_memory_usage_bytes{container="eks-cloudforge-app"} > 800000000
             for: 5m
@@ -461,7 +461,7 @@ rules:
               summary: "High memory usage detected"
               description: "Container {{ $labels.container }} has high memory usage"
               cost_impact: "May trigger auto-scaling"
-          
+
           - alert: PodDown
             expr: up{job="eks-cloudforge-app"} == 0
             for: 1m
@@ -472,7 +472,7 @@ rules:
               summary: "Pod is down"
               description: "Pod {{ $labels.pod }} is down"
               cost_impact: "Service unavailable"
-          
+
           - alert: HighResponseTime
             expr: http_request_duration_seconds{job="eks-cloudforge-app"} > 2
             for: 5m
@@ -483,7 +483,7 @@ rules:
               summary: "High response time detected"
               description: "Response time is high for {{ $labels.instance }}"
               cost_impact: "Poor user experience"
-          
+
           - alert: HighCost
             expr: increase(container_cpu_usage_seconds_total{container="eks-cloudforge-app"}[1h]) > 3600
             for: 10m
@@ -502,7 +502,7 @@ rules:
 # Resource limits optimized for t3.micro
 # Total resource usage across all monitoring components:
 # - Prometheus: 200m CPU, 256Mi RAM
-# - AlertManager: 100m CPU, 128Mi RAM  
+# - AlertManager: 100m CPU, 128Mi RAM
 # - Grafana: 200m CPU, 256Mi RAM
 # - Total: 500m CPU, 640Mi RAM
 # - Available on t3.micro: 1000m CPU, 1024Mi RAM
@@ -514,4 +514,4 @@ rules:
 # - Grafana: 2Gi = ~$0.20/month
 # - Total storage cost: ~$0.80/month
 
-# Estimated total monitoring cost: ~$1.50/month 
+# Estimated total monitoring cost: ~$1.50/month

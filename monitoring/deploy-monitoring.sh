@@ -53,28 +53,28 @@ print_info() {
 
 check_prerequisites() {
     print_header "Checking Prerequisites"
-    
+
     # Check if kubectl is installed
     if ! command -v kubectl &> /dev/null; then
         print_error "kubectl is not installed"
         exit 1
     fi
     print_success "kubectl is installed"
-    
+
     # Check if helm is installed
     if ! command -v helm &> /dev/null; then
         print_error "helm is not installed"
         exit 1
     fi
     print_success "helm is installed"
-    
+
     # Check if we can connect to the cluster
     if ! kubectl cluster-info &> /dev/null; then
         print_error "Cannot connect to Kubernetes cluster"
         exit 1
     fi
     print_success "Connected to Kubernetes cluster"
-    
+
     # Check if we have the required namespaces
     if ! kubectl get namespace $NAMESPACE &> /dev/null; then
         print_warning "Namespace $NAMESPACE does not exist, will create it"
@@ -85,27 +85,27 @@ check_prerequisites() {
 
 create_namespace() {
     print_header "Creating Monitoring Namespace"
-    
+
     kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
     print_success "Namespace $NAMESPACE created/updated"
 }
 
 add_helm_repositories() {
     print_header "Adding Helm Repositories"
-    
+
     # Add Prometheus community repository
     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
     helm repo add grafana https://grafana.github.io/helm-charts
-    
+
     # Update repositories
     helm repo update
-    
+
     print_success "Helm repositories added and updated"
 }
 
 deploy_prometheus() {
     print_header "Deploying Prometheus"
-    
+
     # Create values file for Prometheus
     cat > /tmp/prometheus-values.yaml << EOF
 # Prometheus configuration optimized for t3.micro
@@ -235,7 +235,7 @@ prometheus:
               annotations:
                 summary: "High CPU usage detected"
                 description: "Container {{ \$labels.container }} has high CPU usage"
-            
+
             - alert: HighMemoryUsage
               expr: container_memory_usage_bytes{container="eks-cloudforge-app"} > 800000000
               for: 5m
@@ -244,7 +244,7 @@ prometheus:
               annotations:
                 summary: "High memory usage detected"
                 description: "Container {{ \$labels.container }} has high memory usage"
-            
+
             - alert: PodDown
               expr: up{job="eks-cloudforge-app"} == 0
               for: 1m
@@ -253,7 +253,7 @@ prometheus:
               annotations:
                 summary: "Pod is down"
                 description: "Pod {{ \$labels.pod }} is down"
-            
+
             - alert: HighResponseTime
               expr: http_request_duration_seconds{job="eks-cloudforge-app"} > 2
               for: 5m
@@ -304,7 +304,7 @@ alertmanager:
             severity: 'warning'
           equal: ['alertname', 'dev', 'instance']
 EOF
-    
+
     # Deploy Prometheus
     helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
         --namespace $NAMESPACE \
@@ -313,13 +313,13 @@ EOF
         --wait \
         --timeout 10m \
         --atomic
-    
+
     print_success "Prometheus deployed successfully"
 }
 
 deploy_grafana() {
     print_header "Deploying Grafana"
-    
+
     # Create values file for Grafana
     cat > /tmp/grafana-values.yaml << EOF
 # Grafana configuration optimized for t3.micro
@@ -379,7 +379,7 @@ datasources:
         access: proxy
         isDefault: true
 EOF
-    
+
     # Deploy Grafana
     helm upgrade --install grafana grafana/grafana \
         --namespace $NAMESPACE \
@@ -388,13 +388,13 @@ EOF
         --wait \
         --timeout 10m \
         --atomic
-    
+
     print_success "Grafana deployed successfully"
 }
 
 create_service_monitor() {
     print_header "Creating ServiceMonitor for EKS CloudForge App"
-    
+
     # Create ServiceMonitor
     cat > /tmp/service-monitor.yaml << EOF
 apiVersion: monitoring.coreos.com/v1
@@ -427,14 +427,14 @@ spec:
     - sourceLabels: [__meta_kubernetes_pod_name]
       targetLabel: pod
 EOF
-    
+
     kubectl apply -f /tmp/service-monitor.yaml
     print_success "ServiceMonitor created successfully"
 }
 
 create_pod_monitor() {
     print_header "Creating PodMonitor for EKS CloudForge App"
-    
+
     # Create PodMonitor
     cat > /tmp/pod-monitor.yaml << EOF
 apiVersion: monitoring.coreos.com/v1
@@ -467,14 +467,14 @@ spec:
     - sourceLabels: [__meta_kubernetes_pod_name]
       targetLabel: pod
 EOF
-    
+
     kubectl apply -f /tmp/pod-monitor.yaml
     print_success "PodMonitor created successfully"
 }
 
 create_prometheus_rule() {
     print_header "Creating PrometheusRule for EKS CloudForge App"
-    
+
     # Create PrometheusRule
     cat > /tmp/prometheus-rule.yaml << EOF
 apiVersion: monitoring.coreos.com/v1
@@ -499,7 +499,7 @@ spec:
             summary: "High CPU usage detected"
             description: "Container {{ \$labels.container }} has high CPU usage"
             cost_impact: "May trigger auto-scaling"
-        
+
         - alert: HighMemoryUsage
           expr: container_memory_usage_bytes{container="eks-cloudforge-app"} > 800000000
           for: 5m
@@ -510,7 +510,7 @@ spec:
             summary: "High memory usage detected"
             description: "Container {{ \$labels.container }} has high memory usage"
             cost_impact: "May trigger auto-scaling"
-        
+
         - alert: PodDown
           expr: up{job="eks-cloudforge-app"} == 0
           for: 1m
@@ -521,7 +521,7 @@ spec:
             summary: "Pod is down"
             description: "Pod {{ \$labels.pod }} is down"
             cost_impact: "Service unavailable"
-        
+
         - alert: HighResponseTime
           expr: http_request_duration_seconds{job="eks-cloudforge-app"} > 2
           for: 5m
@@ -532,7 +532,7 @@ spec:
             summary: "High response time detected"
             description: "Response time is high for {{ \$labels.instance }}"
             cost_impact: "Poor user experience"
-        
+
         - alert: HighCost
           expr: increase(container_cpu_usage_seconds_total{container="eks-cloudforge-app"}[1h]) > 3600
           for: 10m
@@ -544,64 +544,64 @@ spec:
             description: "High CPU usage over 1 hour"
             cost_impact: "May exceed budget"
 EOF
-    
+
     kubectl apply -f /tmp/prometheus-rule.yaml
     print_success "PrometheusRule created successfully"
 }
 
 verify_deployment() {
     print_header "Verifying Deployment"
-    
+
     # Check if all pods are running
     print_info "Checking pod status..."
     kubectl get pods -n $NAMESPACE
-    
+
     # Check if services are created
     print_info "Checking services..."
     kubectl get services -n $NAMESPACE
-    
+
     # Check if ingress is created
     print_info "Checking ingress..."
     kubectl get ingress -n $NAMESPACE
-    
+
     # Check if ServiceMonitor is created
     print_info "Checking ServiceMonitor..."
     kubectl get servicemonitor -n $NAMESPACE
-    
+
     # Check if PodMonitor is created
     print_info "Checking PodMonitor..."
     kubectl get podmonitor -n $NAMESPACE
-    
+
     # Check if PrometheusRule is created
     print_info "Checking PrometheusRule..."
     kubectl get prometheusrule -n $NAMESPACE
-    
+
     print_success "Deployment verification completed"
 }
 
 show_access_info() {
     print_header "Access Information"
-    
+
     echo -e "${GREEN}Prometheus:${NC}"
     echo "  URL: http://prometheus-operated.monitoring.svc.cluster.local:9090"
     echo "  (Internal cluster access)"
-    
+
     echo -e "${GREEN}Grafana:${NC}"
     echo "  URL: http://grafana.eks-cloudforge.local"
     echo "  Username: admin"
     echo "  Password: admin123"
-    
+
     echo -e "${GREEN}AlertManager:${NC}"
     echo "  URL: http://alertmanager-operated.monitoring.svc.cluster.local:9093"
     echo "  (Internal cluster access)"
-    
+
     echo -e "${YELLOW}Note:${NC} You may need to add the Grafana hostname to your /etc/hosts file"
     echo "  or configure DNS to point to your cluster's ingress controller"
 }
 
 show_cost_info() {
     print_header "Cost Information"
-    
+
     echo -e "${YELLOW}Estimated Monthly Costs:${NC}"
     echo "  - Prometheus: ~$0.50 (5Gi storage)"
     echo "  - AlertManager: ~$0.10 (1Gi storage)"
@@ -620,13 +620,13 @@ show_cost_info() {
 
 cleanup_temp_files() {
     print_header "Cleaning Up Temporary Files"
-    
+
     rm -f /tmp/prometheus-values.yaml
     rm -f /tmp/grafana-values.yaml
     rm -f /tmp/service-monitor.yaml
     rm -f /tmp/pod-monitor.yaml
     rm -f /tmp/prometheus-rule.yaml
-    
+
     print_success "Temporary files cleaned up"
 }
 
@@ -638,39 +638,39 @@ main() {
     print_header "EKS CloudForge Monitoring Deployment"
     print_info "This script will deploy Prometheus, Grafana, and AlertManager"
     print_info "Optimized for t3.micro instances with cost monitoring"
-    
+
     # Check prerequisites
     check_prerequisites
-    
+
     # Create namespace
     create_namespace
-    
+
     # Add Helm repositories
     add_helm_repositories
-    
+
     # Deploy Prometheus
     deploy_prometheus
-    
+
     # Deploy Grafana
     deploy_grafana
-    
+
     # Create monitoring resources
     create_service_monitor
     create_pod_monitor
     create_prometheus_rule
-    
+
     # Verify deployment
     verify_deployment
-    
+
     # Show access information
     show_access_info
-    
+
     # Show cost information
     show_cost_info
-    
+
     # Cleanup
     cleanup_temp_files
-    
+
     print_header "Deployment Complete"
     print_success "Monitoring stack deployed successfully!"
     print_info "You can now access Grafana at: http://grafana.eks-cloudforge.local"
@@ -678,4 +678,4 @@ main() {
 }
 
 # Run main function
-main "$@" 
+main "$@"

@@ -53,4 +53,4 @@ psutil>=5.9.6
 # - All packages are from PyPI (trusted source)
 # - Versions are pinned to prevent supply chain attacks
 # - Minimal dependencies reduce attack surface
-# - Regular security updates recommended 
+# - Regular security updates recommended

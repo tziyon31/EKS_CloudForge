@@ -489,4 +489,4 @@ interval: 30s
 path: /metrics
 port: 5000
 {{- end }}
-{{- end }} 
+{{- end }}

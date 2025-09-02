@@ -117,4 +117,4 @@ CMD ["python", "app.py"]
 #
 # Push to ECR:
 #   docker tag eks-cloudforge-app:latest <ECR_REPO_URL>:latest
-#   docker push <ECR_REPO_URL>:latest 
+#   docker push <ECR_REPO_URL>:latest

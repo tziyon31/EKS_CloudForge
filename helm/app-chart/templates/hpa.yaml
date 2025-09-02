@@ -27,13 +27,13 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ include "eks-cloudforge-app.fullname" . }}
-  
+
   # Minimum number of replicas
   minReplicas: {{ .Values.autoscaling.minReplicas | default 1 }}
-  
+
   # Maximum number of replicas (limited by t3.micro resources)
   maxReplicas: {{ .Values.autoscaling.maxReplicas | default 4 }}
-  
+
   # Metrics for scaling
   metrics:
     # CPU utilization metric
@@ -43,7 +43,7 @@ spec:
         target:
           type: Utilization
           averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage | default 70 }}
-    
+
     # Memory utilization metric
     - type: Resource
       resource:
@@ -51,7 +51,7 @@ spec:
         target:
           type: Utilization
           averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage | default 80 }}
-    
+
     # Custom metrics (optional)
     # - type: Object
     #   object:
@@ -64,11 +64,11 @@ spec:
     #     target:
     #       type: AverageValue
     #       averageValue: 10k
-  
+
   # Behavior configuration for scaling
   behavior:
     {{- include "eks-cloudforge-app.hpaBehavior" . | nindent 4 }}
-  
+
   # Advanced scaling behavior (optional)
   # behavior:
   #   scaleDown:

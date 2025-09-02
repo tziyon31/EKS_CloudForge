@@ -35,4 +35,4 @@ pre-commit==3.5.0
 # - Install with: pip install -r requirements-test.txt
 # - Used only in CI/CD pipeline and development
 # - Not included in production Docker image
-# - Keeps production image lightweight 
+# - Keeps production image lightweight

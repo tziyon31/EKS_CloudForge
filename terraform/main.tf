@@ -35,7 +35,7 @@ data "aws_vpc" "default" {
 resource "aws_s3_bucket" "terraform_state" {
   # Bucket name must be globally unique across all AWS accounts
   bucket = var.terraform_state_bucket_name
-  
+
   # Tags for cost tracking and resource management
   tags = {
     Name        = "Terraform State Bucket"
@@ -48,7 +48,7 @@ resource "aws_s3_bucket" "terraform_state" {
 # This allows us to recover from accidental deletions or corruption
 resource "aws_s3_bucket_versioning" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
-  
+
   versioning_configuration {
     status = "Enabled"  # Enable versioning
   }
@@ -58,7 +58,7 @@ resource "aws_s3_bucket_versioning" "terraform_state" {
 # This encrypts all data stored in the bucket (including state files)
 resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
-  
+
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm = "AES256"  # Use AES256 encryption
@@ -70,7 +70,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" 
 # State files contain sensitive information and should never be public
 resource "aws_s3_bucket_public_access_block" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
-  
+
   # Block all public access
   block_public_acls       = true
   block_public_policy     = true
@@ -88,15 +88,15 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
 resource "aws_vpc" "main" {
   # CIDR block defines the IP range for the VPC
   cidr_block = var.vpc_cidr_block
-  
+
   # Enable DNS hostnames for the VPC
   # This allows instances to have DNS names
   enable_dns_hostnames = true
-  
+
   # Enable DNS resolution for the VPC
   # This allows instances to resolve DNS names
   enable_dns_support = true
-  
+
   tags = {
     Name = "${var.project_name}-vpc"
   }
@@ -107,7 +107,7 @@ resource "aws_vpc" "main" {
 resource "aws_internet_gateway" "main" {
   # Attach to our VPC
   vpc_id = aws_vpc.main.id
-  
+
   tags = {
     Name = "${var.project_name}-igw"
   }
@@ -118,20 +118,20 @@ resource "aws_internet_gateway" "main" {
 resource "aws_subnet" "public" {
   # Create one subnet for each availability zone
   count = length(var.availability_zones)
-  
+
   # VPC this subnet belongs to
   vpc_id = aws_vpc.main.id
-  
+
   # CIDR block for this subnet
   cidr_block = var.public_subnet_cidrs[count.index]
-  
+
   # Availability zone for this subnet
   availability_zone = var.availability_zones[count.index]
-  
+
   # Enable auto-assign public IP addresses
   # This allows instances to get public IPs automatically
   map_public_ip_on_launch = true
-  
+
   tags = {
     Name = "${var.project_name}-public-subnet-${count.index + 1}"
     # Tag for Kubernetes to identify public subnets
@@ -144,20 +144,20 @@ resource "aws_subnet" "public" {
 resource "aws_subnet" "private" {
   # Create one subnet for each availability zone
   count = length(var.availability_zones)
-  
+
   # VPC this subnet belongs to
   vpc_id = aws_vpc.main.id
-  
+
   # CIDR block for this subnet
   cidr_block = var.private_subnet_cidrs[count.index]
-  
+
   # Availability zone for this subnet
   availability_zone = var.availability_zones[count.index]
-  
+
   # Disable auto-assign public IP addresses
   # Private subnets should not have public IPs
   map_public_ip_on_launch = false
-  
+
   tags = {
     Name = "${var.project_name}-private-subnet-${count.index + 1}"
     # Tag for Kubernetes to identify private subnets
@@ -170,13 +170,13 @@ resource "aws_subnet" "private" {
 resource "aws_route_table" "public" {
   # VPC this route table belongs to
   vpc_id = aws_vpc.main.id
-  
+
   # Route all internet traffic (0.0.0.0/0) through the Internet Gateway
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.main.id
   }
-  
+
   tags = {
     Name = "${var.project_name}-public-rt"
   }
@@ -186,10 +186,10 @@ resource "aws_route_table" "public" {
 resource "aws_route_table_association" "public" {
   # Create one association for each public subnet
   count = length(var.public_subnet_cidrs)
-  
+
   # Subnet to associate
   subnet_id = aws_subnet.public[count.index].id
-  
+
   # Route table to associate with
   route_table_id = aws_route_table.public.id
 }
@@ -199,10 +199,10 @@ resource "aws_route_table_association" "public" {
 resource "aws_eip" "nat" {
   # Create one EIP for each availability zone
   count = length(var.availability_zones)
-  
+
   # Domain must be vpc for use with NAT Gateway
   domain = "vpc"
-  
+
   tags = {
     Name = "${var.project_name}-nat-eip-${count.index + 1}"
   }
@@ -213,17 +213,17 @@ resource "aws_eip" "nat" {
 resource "aws_nat_gateway" "main" {
   # Create one NAT Gateway for each availability zone
   count = length(var.availability_zones)
-  
+
   # Allocate Elastic IP for this NAT Gateway
   allocation_id = aws_eip.nat[count.index].id
-  
+
   # Place NAT Gateway in public subnet
   subnet_id = aws_subnet.public[count.index].id
-  
+
   tags = {
     Name = "${var.project_name}-nat-gateway-${count.index + 1}"
   }
-  
+
   # Depend on Internet Gateway to ensure it exists first
   depends_on = [aws_internet_gateway.main]
 }
@@ -233,16 +233,16 @@ resource "aws_nat_gateway" "main" {
 resource "aws_route_table" "private" {
   # Create one route table for each availability zone
   count = length(var.availability_zones)
-  
+
   # VPC this route table belongs to
   vpc_id = aws_vpc.main.id
-  
+
   # Route all internet traffic (0.0.0.0/0) through the NAT Gateway
   route {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.main[count.index].id
   }
-  
+
   tags = {
     Name = "${var.project_name}-private-rt-${count.index + 1}"
   }
@@ -252,10 +252,10 @@ resource "aws_route_table" "private" {
 resource "aws_route_table_association" "private" {
   # Create one association for each private subnet
   count = length(var.private_subnet_cidrs)
-  
+
   # Subnet to associate
   subnet_id = aws_subnet.private[count.index].id
-  
+
   # Route table to associate with
   route_table_id = aws_route_table.private[count.index].id
 }
@@ -270,7 +270,7 @@ resource "aws_route_table_association" "private" {
 # This role allows EKS to manage cluster resources
 resource "aws_iam_role" "eks_cluster" {
   name = "${var.project_name}-eks-cluster-role"
-  
+
   # Trust policy allows EKS to assume this role
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -291,7 +291,7 @@ resource "aws_iam_role" "eks_cluster" {
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   # Role to attach policy to
   role = aws_iam_role.eks_cluster.name
-  
+
   # Policy to attach
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
@@ -300,7 +300,7 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
 # This role allows EKS worker nodes to access AWS services
 resource "aws_iam_role" "eks_node_group" {
   name = "${var.project_name}-eks-node-group-role"
-  
+
   # Trust policy allows EKS node groups to assume this role
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -321,7 +321,7 @@ resource "aws_iam_role" "eks_node_group" {
 resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {
   # Role to attach policy to
   role = aws_iam_role.eks_node_group.name
-  
+
   # Policy to attach
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
 }
@@ -331,7 +331,7 @@ resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {
 resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
   # Role to attach policy to
   role = aws_iam_role.eks_node_group.name
-  
+
   # Policy to attach
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
@@ -341,7 +341,7 @@ resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
 resource "aws_iam_role_policy_attachment" "ecr_read_only_policy" {
   # Role to attach policy to
   role = aws_iam_role.eks_node_group.name
-  
+
   # Policy to attach
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
@@ -355,31 +355,31 @@ resource "aws_iam_role_policy_attachment" "ecr_read_only_policy" {
 resource "aws_eks_cluster" "main" {
   # Name of the EKS cluster
   name = var.eks_cluster_name
-  
+
   # Kubernetes version for the cluster
   version = var.eks_cluster_version
-  
+
   # IAM role for the EKS cluster
   role_arn = aws_iam_role.eks_cluster.arn
-  
+
   # VPC configuration for the cluster
   vpc_config {
     # Subnet IDs where the cluster will be created
     # We'll use private subnets for the cluster control plane
     subnet_ids = aws_subnet.private[*].id
-    
+
     # Whether the cluster endpoint is publicly accessible
     endpoint_public_access = var.eks_cluster_endpoint_public_access
-    
+
     # CIDR blocks that can access the cluster endpoint
     public_access_cidrs = var.eks_cluster_endpoint_public_access_cidrs
   }
-  
+
   # Ensure IAM role is created before the cluster
   depends_on = [
     aws_iam_role_policy_attachment.eks_cluster_policy
   ]
-  
+
   tags = {
     Name = var.eks_cluster_name
   }
@@ -394,45 +394,45 @@ resource "aws_eks_cluster" "main" {
 resource "aws_eks_node_group" "main" {
   # Name of the node group
   node_group_name = "${var.project_name}-node-group"
-  
+
   # EKS cluster this node group belongs to
   cluster_name = aws_eks_cluster.main.name
-  
+
   # IAM role for the node group
   node_role_arn = aws_iam_role.eks_node_group.arn
-  
+
   # Subnet IDs where worker nodes will be created
   # We'll use private subnets for security
   subnet_ids = aws_subnet.private[*].id
-  
+
   # Instance types for worker nodes
   instance_types = var.eks_node_group_instance_types
-  
+
   # Scaling configuration
   scaling_config {
     # Desired number of worker nodes
     desired_size = var.eks_node_group_desired_size
-    
+
     # Maximum number of worker nodes
     max_size = var.eks_node_group_max_size
-    
+
     # Minimum number of worker nodes
     min_size = var.eks_node_group_min_size
   }
-  
+
   # Update configuration
   update_config {
     # Maximum number of nodes that can be unavailable during updates
     max_unavailable = 1
   }
-  
+
   # Ensure IAM roles are created before the node group
   depends_on = [
     aws_iam_role_policy_attachment.eks_worker_node_policy,
     aws_iam_role_policy_attachment.eks_cni_policy,
     aws_iam_role_policy_attachment.ecr_read_only_policy
   ]
-  
+
   tags = {
     Name = "${var.project_name}-node-group"
   }
@@ -447,14 +447,14 @@ resource "aws_eks_node_group" "main" {
 resource "aws_ecr_repository" "app" {
   # Name of the ECR repository
   name = var.ecr_repository_name
-  
+
   # Image tag mutability setting
   image_tag_mutability = var.ecr_image_tag_mutability
-  
+
   # Force delete the repository when destroying
   # This allows Terraform to clean up the repository
   force_delete = true
-  
+
   tags = {
     Name = var.ecr_repository_name
   }
@@ -465,7 +465,7 @@ resource "aws_ecr_repository" "app" {
 resource "aws_ecr_lifecycle_policy" "app" {
   # ECR repository this policy applies to
   repository = aws_ecr_repository.app.name
-  
+
   # Lifecycle policy configuration
   policy = jsonencode({
     rules = [
@@ -496,13 +496,13 @@ resource "aws_ecr_lifecycle_policy" "app" {
 resource "aws_security_group" "eks_cluster" {
   # Name of the security group
   name_prefix = "${var.project_name}-eks-cluster-"
-  
+
   # VPC this security group belongs to
   vpc_id = aws_vpc.main.id
-  
+
   # Description of the security group
   description = "Security group for EKS cluster"
-  
+
   # Inbound rules (what traffic can come in)
   ingress {
     # Allow all traffic from within the VPC
@@ -512,7 +512,7 @@ resource "aws_security_group" "eks_cluster" {
     cidr_blocks = [var.vpc_cidr_block]
     description = "Allow all traffic from within VPC"
   }
-  
+
   # Outbound rules (what traffic can go out)
   egress {
     # Allow all outbound traffic
@@ -522,7 +522,7 @@ resource "aws_security_group" "eks_cluster" {
     cidr_blocks = ["0.0.0.0/0"]
     description = "Allow all outbound traffic"
   }
-  
+
   tags = {
     Name = "${var.project_name}-eks-cluster-sg"
   }
@@ -532,13 +532,13 @@ resource "aws_security_group" "eks_cluster" {
 resource "aws_security_group" "eks_worker" {
   # Name of the security group
   name_prefix = "${var.project_name}-eks-worker-"
-  
+
   # VPC this security group belongs to
   vpc_id = aws_vpc.main.id
-  
+
   # Description of the security group
   description = "Security group for EKS worker nodes"
-  
+
   # Inbound rules (what traffic can come in)
   ingress {
     # Allow all traffic from within the VPC
@@ -548,7 +548,7 @@ resource "aws_security_group" "eks_worker" {
     cidr_blocks = [var.vpc_cidr_block]
     description = "Allow all traffic from within VPC"
   }
-  
+
   # Outbound rules (what traffic can go out)
   egress {
     # Allow all outbound traffic
@@ -558,8 +558,8 @@ resource "aws_security_group" "eks_worker" {
     cidr_blocks = ["0.0.0.0/0"]
     description = "Allow all outbound traffic"
   }
-  
+
   tags = {
     Name = "${var.project_name}-eks-worker-sg"
   }
-} 
+}

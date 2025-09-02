@@ -37,4 +37,4 @@ helmVersion: ">=3.0.0"
 annotations:
   category: Application
   licenses: MIT
-  support: https://github.com/tziyon31/EKS_CloudForge/issues 
+  support: https://github.com/tziyon31/EKS_CloudForge/issues

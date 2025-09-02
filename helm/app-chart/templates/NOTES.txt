@@ -192,4 +192,4 @@ kubectl get endpoints {{ include "eks-cloudforge-app.serviceName" . }} -n {{ .Re
 
 **🎉 Your cost-optimized EKS CloudForge application is now running!**
 
-**Happy deploying! 🚀** 
+**Happy deploying! 🚀**

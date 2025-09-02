@@ -3,15 +3,15 @@
 EKS CloudForge Flask Application
 A lightweight, cost-optimized Flask app designed for t3.micro instances
 """
-# Updated for security fixes and pipeline improvements again
-from datetime import datetime
-import json
 import os
 import platform
 import time
 
+# Updated for security fixes and pipeline improvements
+from datetime import datetime
+
 import psutil
-from flask import Flask, Response, jsonify, render_template_string, request
+from flask import Flask, Response, jsonify, render_template_string
 
 # Initialize Flask application
 app = Flask(__name__)
@@ -130,7 +130,7 @@ HTML_TEMPLATE = """
         <p style="text-align: center; font-size: 1.2em; margin-bottom: 30px;">
             Complete DevOps Pipeline Demo - Running on Cost-Optimized t3.micro Instances
         </p>
-        
+
         <div class="status-grid">
             <div class="status-card">
                 <h3>Status</h3>
@@ -338,9 +338,8 @@ def prometheus_metrics():
     memory = psutil.virtual_memory()
     disk = psutil.disk_usage("/")
 
-    # Calculate request rate
+    # Calculate uptime
     uptime_seconds = (datetime.now() - START_TIME).total_seconds()
-    request_rate = REQUEST_COUNT / uptime_seconds if uptime_seconds > 0 else 0
 
     # Build Prometheus metrics
     metrics = []
@@ -492,4 +491,4 @@ if __name__ == "__main__":
     print("📊 Monitoring: Prometheus metrics available at /prometheus")
 
     # Start the Flask application
-    app.run(host=host, port=port, debug=False) 
+    app.run(host=host, port=port, debug=False)

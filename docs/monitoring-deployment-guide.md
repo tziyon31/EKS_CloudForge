@@ -642,4 +642,4 @@ After successful monitoring deployment:
 
 ---
 
-**Your monitoring stack is now ready for production use!** 📊 
+**Your monitoring stack is now ready for production use!** 📊

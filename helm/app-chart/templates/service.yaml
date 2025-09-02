@@ -29,15 +29,15 @@ metadata:
 spec:
   # Service type (ClusterIP for internal access, LoadBalancer for external access)
   type: {{ .Values.service.type | default "ClusterIP" }}
-  
+
   # Session affinity (optional)
   sessionAffinity: None
-  
+
   # Session affinity config (optional)
   # sessionAffinityConfig:
   #   clientIP:
   #     timeoutSeconds: 10800
-  
+
   # Ports configuration
   ports:
     - name: http
@@ -48,26 +48,26 @@ spec:
       {{- if or (eq .Values.service.type "NodePort") (eq .Values.service.type "LoadBalancer") }}
       nodePort: {{ .Values.service.nodePort | default 30080 }}
       {{- end }}
-  
+
   # Selector to match pods
   selector:
     {{- include "eks-cloudforge-app.selectorLabels" . | nindent 4 }}
-  
+
   # External IPs (optional)
   # externalIPs:
   #   - 192.168.1.1
-  
+
   # Load balancer source ranges (optional)
   # loadBalancerSourceRanges:
   #   - 10.0.0.0/8
   #   - 172.16.0.0/12
   #   - 192.168.0.0/16
-  
+
   # Load balancer IP (optional)
   # loadBalancerIP: 192.168.1.1
-  
+
   # External name (for ExternalName type)
   # externalName: example.com
-  
+
   # Publish not ready addresses (optional)
   publishNotReadyAddresses: false

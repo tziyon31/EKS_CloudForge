@@ -14,16 +14,16 @@ metadata:
 spec:
   # Number of replicas (optimized for t3.micro instances)
   replicas: {{ .Values.deployment.replicas | default 2 }}
-  
+
   # Selector to match pods
   selector:
     matchLabels:
       {{- include "eks-cloudforge-app.selectorLabels" . | nindent 6 }}
-  
+
   # Update strategy for rolling updates
   strategy:
     {{- include "eks-cloudforge-app.updateStrategy" . | nindent 4 }}
-  
+
   # Pod template
   template:
     metadata:
@@ -47,69 +47,69 @@ spec:
         liveness-probe: "/health"
         readiness-probe: "/health"
         startup-probe: "/health"
-    
+
     spec:
       # Image pull secrets (if using private registry)
       {{- include "eks-cloudforge-app.imagePullSecrets" . | nindent 6 }}
-      
+
       # Service account (if enabled)
       {{- if .Values.serviceAccount.enabled }}
       serviceAccountName: {{ include "eks-cloudforge-app.serviceAccountName" . }}
       {{- end }}
-      
+
       # Security context for the pod
       securityContext:
         {{- include "eks-cloudforge-app.securityContext" . | nindent 8 }}
-      
+
       # Restart policy
       restartPolicy: Always
-      
+
       # Termination grace period
       terminationGracePeriodSeconds: 30
-      
+
       # Containers
       containers:
         - name: {{ .Values.container.name | default "app" }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ include "eks-cloudforge-app.imagePullPolicy" . }}
-          
+
           # Container port
           ports:
             - name: http
               containerPort: {{ .Values.container.port | default 5000 }}
               protocol: TCP
-          
+
           # Environment variables
           env:
             {{- include "eks-cloudforge-app.env" . | nindent 12 }}
-          
+
           # Resource limits and requests (t3.micro optimized)
           resources:
             {{- include "eks-cloudforge-app.resources" . | nindent 12 }}
-          
+
           # Liveness probe (checks if container is alive)
           livenessProbe:
             {{- include "eks-cloudforge-app.livenessProbe" . | nindent 12 }}
-          
+
           # Readiness probe (checks if container is ready to serve traffic)
           readinessProbe:
             {{- include "eks-cloudforge-app.readinessProbe" . | nindent 12 }}
-          
+
           # Startup probe (checks if container has started successfully)
           startupProbe:
             {{- include "eks-cloudforge-app.startupProbe" . | nindent 12 }}
-          
+
           # Security context for the container
           securityContext:
             {{- include "eks-cloudforge-app.containerSecurityContext" . | nindent 12 }}
-          
+
           # Command and args (if needed)
           # command: ["python"]
           # args: ["app.py"]
-          
+
           # Working directory
           workingDir: /app
-          
+
           # Volume mounts (if using persistent volumes)
           {{- if .Values.persistence.enabled }}
           volumeMounts:
@@ -117,7 +117,7 @@ spec:
               mountPath: /app/data
               subPath: ""
           {{- end }}
-          
+
           # Lifecycle hooks (optional)
           lifecycle:
             preStop:
@@ -126,7 +126,7 @@ spec:
                   - /bin/sh
                   - -c
                   - "sleep 10"
-      
+
       # Volumes (if using persistent volumes)
       {{- if .Values.persistence.enabled }}
       volumes:
@@ -134,12 +134,12 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "eks-cloudforge-app.fullname" . }}-pvc
       {{- end }}
-      
+
       # Node selector (optional - for specific node placement)
       # nodeSelector:
       #   instance-type: t3.micro
       #   cost-optimized: "true"
-      
+
       # Affinity (optional - for pod placement rules)
       affinity:
         # Pod anti-affinity to spread pods across nodes
@@ -154,7 +154,7 @@ spec:
                       values:
                         - {{ include "eks-cloudforge-app.name" . }}
                 topologyKey: kubernetes.io/hostname
-        
+
         # Node affinity to prefer t3.micro instances
         nodeAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -172,20 +172,20 @@ spec:
                     operator: In
                     values:
                       - "true"
-      
+
       # Tolerations (optional - for tainted nodes)
       # tolerations:
       #   - key: "cost-optimized"
       #     operator: "Equal"
       #     value: "true"
       #     effect: "NoSchedule"
-      
+
       # Priority class (optional)
       # priorityClassName: high-priority
-      
+
       # DNS policy
       dnsPolicy: ClusterFirst
-      
+
       # DNS config (optional)
       # dnsConfig:
       #   nameservers:

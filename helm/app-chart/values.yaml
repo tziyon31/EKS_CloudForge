@@ -17,7 +17,7 @@ global:
     environment: "dev"
     cost-optimized: "true"
     instance-type: "t3-micro"
-  
+
   # Common annotations
   annotations:
     cost-center: "devops"
@@ -34,7 +34,7 @@ image:
   repository: "123456789012.dkr.ecr.us-east-1.amazonaws.com/cloudforge-app"
   tag: "latest"
   pullPolicy: IfNotPresent
-  
+
   # Image pull secrets (if using private registry)
   # pullSecrets:
   #   - name: regcred
@@ -47,19 +47,19 @@ image:
 deployment:
   # Number of replicas (optimized for t3.micro)
   replicas: 2
-  
+
   # Update strategy
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 1
       maxUnavailable: 0
-  
+
   # Pod template labels
   podLabels:
     app: eks-cloudforge-app
     tier: web
-  
+
   # Pod template annotations
   podAnnotations:
     prometheus.io/scrape: "true"
@@ -77,13 +77,13 @@ resources:
   requests:
     cpu: "200m"        # 20% of 1 vCPU
     memory: "256Mi"    # 25% of 1GB RAM
-  
+
   # Resource limits (maximum allowed resources)
   # Set higher to allow auto-scaling to trigger before OOM
   limits:
     cpu: "800m"        # 80% of 1 vCPU (allows scaling before throttling)
     memory: "800Mi"    # 80% of 1GB RAM (allows scaling before OOM)
-  
+
   # Notes:
   # - t3.micro has 1 vCPU and 1GB RAM
   # - System pods use ~200-300m CPU and ~400-600MB RAM
@@ -99,10 +99,10 @@ resources:
 container:
   # Container name
   name: app
-  
+
   # Container port
   port: 5000
-  
+
   # Environment variables
   env:
     - name: FLASK_ENV
@@ -113,12 +113,12 @@ container:
       value: "0.0.0.0"
     - name: PYTHONUNBUFFERED
       value: "1"
-  
+
   # Environment variables from configmap
   # envFrom:
   #   - configMapRef:
   #       name: app-config
-  
+
   # Environment variables from secrets
   # envFrom:
   #   - secretRef:
@@ -169,18 +169,18 @@ startupProbe:
 service:
   # Service type
   type: ClusterIP
-  
+
   # Service port
   port: 80
-  
+
   # Target port (container port)
   targetPort: 5000
-  
+
   # Service annotations
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
     service.beta.kubernetes.io/aws-load-balancer-internal: "false"
-  
+
   # Service labels
   labels:
     app: eks-cloudforge-app
@@ -193,10 +193,10 @@ service:
 ingress:
   # Enable/disable ingress
   enabled: true
-  
+
   # Ingress class
   className: "nginx"
-  
+
   # Ingress annotations
   annotations:
     kubernetes.io/ingress.class: nginx
@@ -207,14 +207,14 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
-  
+
   # Ingress hosts
   hosts:
     - host: eks-cloudforge.local
       paths:
         - path: /
           pathType: Prefix
-  
+
   # TLS configuration (optional)
   # tls:
   #   - secretName: app-tls
@@ -229,19 +229,19 @@ ingress:
 autoscaling:
   # Enable/disable HPA
   enabled: true
-  
+
   # Minimum replicas
   minReplicas: 1
-  
+
   # Maximum replicas (limited by t3.micro resources)
   maxReplicas: 4
-  
+
   # Target CPU utilization percentage
   targetCPUUtilizationPercentage: 70
-  
+
   # Target memory utilization percentage
   targetMemoryUtilizationPercentage: 80
-  
+
   # Scale down behavior
   behavior:
     scaleDown:
@@ -265,7 +265,7 @@ autoscaling:
 configMap:
   # Enable/disable configmap
   enabled: false
-  
+
   # ConfigMap data
   data:
     # LOG_LEVEL: "INFO"
@@ -280,7 +280,7 @@ configMap:
 secrets:
   # Enable/disable secrets
   enabled: false
-  
+
   # Secret data (base64 encoded)
   data:
     # DATABASE_URL: "base64-encoded-value"
@@ -294,13 +294,13 @@ secrets:
 persistence:
   # Enable/disable persistence
   enabled: false
-  
+
   # Storage class
   storageClass: ""
-  
+
   # Access mode
   accessMode: ReadWriteOnce
-  
+
   # Storage size
   size: 1Gi
 
@@ -312,7 +312,7 @@ persistence:
 networkPolicy:
   # Enable/disable network policy
   enabled: false
-  
+
   # Ingress rules
   ingress:
     - from:
@@ -331,13 +331,13 @@ networkPolicy:
 serviceAccount:
   # Enable/disable service account
   enabled: false
-  
+
   # Service account name
   name: ""
-  
+
   # Service account annotations
   annotations: {}
-  
+
   # Service account labels
   labels: {}
 
@@ -349,10 +349,10 @@ serviceAccount:
 podDisruptionBudget:
   # Enable/disable PDB
   enabled: true
-  
+
   # Minimum available replicas
   minAvailable: 1
-  
+
   # Maximum unavailable replicas
   maxUnavailable: 1
 
@@ -364,7 +364,7 @@ podDisruptionBudget:
 monitoring:
   # Enable/disable monitoring
   enabled: true
-  
+
   # ServiceMonitor for Prometheus
   serviceMonitor:
     enabled: false
@@ -380,19 +380,19 @@ monitoring:
 costOptimization:
   # Enable cost optimization features
   enabled: true
-  
+
   # Instance type
   instanceType: "t3.micro"
-  
+
   # Cost per month estimate
   estimatedCostPerMonth: "$8.47"
-  
+
   # Auto-scaling enabled
   autoScaling: true
-  
+
   # Resource limits enforced
   resourceLimits: true
-  
+
   # Monitoring enabled
   monitoring: true
 
@@ -404,13 +404,13 @@ costOptimization:
 security:
   # Run as non-root user
   runAsNonRoot: true
-  
+
   # Read-only root filesystem
   readOnlyRootFilesystem: false
-  
+
   # Allow privilege escalation
   allowPrivilegeEscalation: false
-  
+
   # Security context
   securityContext:
     runAsUser: 1000
@@ -428,10 +428,10 @@ security:
 debugging:
   # Enable debug mode
   debug: false
-  
+
   # Log level
   logLevel: "INFO"
-  
+
   # Enable verbose logging
   verbose: false
 
@@ -445,4 +445,4 @@ debugging:
 # - Auto-scaling is enabled with reasonable limits
 # - Health checks are configured for Kubernetes
 # - Cost optimization features are enabled by default
-# - Security best practices are implemented 
+# - Security best practices are implemented

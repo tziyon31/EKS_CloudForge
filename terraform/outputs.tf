@@ -215,4 +215,4 @@ output "cost_optimization_notes" {
     "t3.micro instances are very cost-effective at ~$8.47/month each",
     "Auto-scaling will only scale up when needed, reducing costs"
   ]
-} 
+}

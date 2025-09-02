@@ -162,4 +162,4 @@ secrets/
 # - Only app.py and requirements.txt are needed for the application
 # - Excluding everything else reduces build context size
 # - Faster builds and smaller images
-# - Better security (no sensitive files included) 
+# - Better security (no sensitive files included)

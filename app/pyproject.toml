@@ -1,64 +1,11 @@
-# =============================================================================
-# EKS CloudForge - Python Project Configuration
-# =============================================================================
-# 
-# מטרת הקובץ הזה:
-# =================
-# 1. הגדרת סטנדרטים עקביים לקוד Python בכל הפרויקט
-# 2. מניעת כשלים ב-CI/CD pipeline בגלל בעיות formatting
-# 3. הגדרת כלי Code Quality (Black, isort, flake8) עם הגדרות זהות
-# 
-# למה זה חשוב:
-# ===============
-# - Black: מעצב את הקוד לפי סטנדרטים עקביים (רווחים, גרשיים, etc.)
-# - isort: מסדר את ה-imports בסדר הנכון
-# - flake8: בודק שגיאות קוד וסגנון
-# 
-# בלי הקובץ הזה:
-# - כל מפתח יכול לעצב קוד אחרת
-# - CI/CD נכשל בגלל formatting לא עקבי
-# - קשה לקרוא ולשמור על הקוד
-# 
-# עם הקובץ הזה:
-# - כל הקוד נראה אותו דבר
-# - CI/CD עובר בהצלחה
-# - קל יותר לשתף ולפתח
-# 
-# איך זה עובד:
-# =============
-# 1. GitHub Actions קורא את ההגדרות מהקובץ
-# 2. Black/isort/flake8 משתמשים בהגדרות האלה
-# 3. pre-commit hooks מריצים אוטומטית לפני commit
-# 4. כל הקוד עומד באותם סטנדרטים
-# 
-# =============================================================================
-
 [tool.black]
 line-length = 127
 target-version = ['py311']
-include = '\.pyi?$'
-extend-exclude = '''
-/(\.eggs|\.git|\.hg|\.mypy_cache|\.tox|\.venv|build|dist)/
-'''
 
 [tool.isort]
 profile = "black"
 line_length = 127
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
 
 [tool.flake8]
 max-line-length = 127
-extend-ignore = ["E203", "W503"]
-exclude = [
-    ".git",
-    "__pycache__",
-    "build",
-    "dist",
-    ".venv",
-    ".eggs",
-    "*.egg",
-] 
+extend-ignore = ["E203", "W503", "E501"]

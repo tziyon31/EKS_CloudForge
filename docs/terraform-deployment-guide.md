@@ -388,4 +388,4 @@ If you encounter issues:
 
 ---
 
-**Remember:** This infrastructure is designed for development and learning. For production use, consider additional security measures, monitoring, and backup strategies. 
+**Remember:** This infrastructure is designed for development and learning. For production use, consider additional security measures, monitoring, and backup strategies.

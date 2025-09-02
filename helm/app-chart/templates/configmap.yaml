@@ -20,82 +20,82 @@ metadata:
 data:
   # Application configuration
   {{- include "eks-cloudforge-app.configMapData" . | nindent 2 }}
-  
+
   # Default configuration values
   LOG_LEVEL: "{{ .Values.debugging.logLevel | default 'INFO' }}"
   APP_ENVIRONMENT: "{{ .Values.global.labels.environment | default 'dev' }}"
   METRICS_ENABLED: "{{ .Values.monitoring.enabled | default 'true' }}"
   DEBUG_MODE: "{{ .Values.debugging.debug | default 'false' }}"
   VERBOSE_LOGGING: "{{ .Values.debugging.verbose | default 'false' }}"
-  
+
   # Flask application configuration
   FLASK_ENV: "{{ .Values.container.env | default 'production' }}"
   FLASK_DEBUG: "{{ .Values.debugging.debug | default 'false' }}"
   FLASK_HOST: "0.0.0.0"
   FLASK_PORT: "5000"
-  
+
   # Cost optimization configuration
   COST_OPTIMIZATION_ENABLED: "{{ .Values.costOptimization.enabled | default 'true' }}"
   INSTANCE_TYPE: "{{ .Values.costOptimization.instanceType | default 't3.micro' }}"
   ESTIMATED_COST_PER_MONTH: "{{ .Values.costOptimization.estimatedCostPerMonth | default '8.47' }}"
   AUTO_SCALING_ENABLED: "{{ .Values.costOptimization.autoScaling | default 'true' }}"
   RESOURCE_LIMITS_ENFORCED: "{{ .Values.costOptimization.resourceLimits | default 'true' }}"
-  
+
   # Monitoring configuration
   MONITORING_ENABLED: "{{ .Values.monitoring.enabled | default 'true' }}"
   PROMETHEUS_ENABLED: "{{ .Values.monitoring.serviceMonitor.enabled | default 'false' }}"
   METRICS_PATH: "/metrics"
   METRICS_PORT: "5000"
-  
+
   # Security configuration
   SECURITY_ENABLED: "{{ .Values.security.runAsNonRoot | default 'true' }}"
   NON_ROOT_USER: "1000"
   NON_ROOT_GROUP: "1000"
   READ_ONLY_FILESYSTEM: "{{ .Values.security.readOnlyRootFilesystem | default 'false' }}"
   PRIVILEGE_ESCALATION: "{{ .Values.security.allowPrivilegeEscalation | default 'false' }}"
-  
+
   # Health check configuration
   HEALTH_CHECK_PATH: "/health"
   HEALTH_CHECK_INTERVAL: "30"
   HEALTH_CHECK_TIMEOUT: "10"
   HEALTH_CHECK_FAILURE_THRESHOLD: "3"
   HEALTH_CHECK_SUCCESS_THRESHOLD: "1"
-  
+
   # Auto-scaling configuration
   HPA_MIN_REPLICAS: "{{ .Values.autoscaling.minReplicas | default 1 }}"
   HPA_MAX_REPLICAS: "{{ .Values.autoscaling.maxReplicas | default 4 }}"
   HPA_TARGET_CPU_UTILIZATION: "{{ .Values.autoscaling.targetCPUUtilizationPercentage | default 70 }}"
   HPA_TARGET_MEMORY_UTILIZATION: "{{ .Values.autoscaling.targetMemoryUtilizationPercentage | default 80 }}"
-  
+
   # Resource limits configuration
   CPU_REQUEST: "{{ .Values.resources.requests.cpu | default '200m' }}"
   CPU_LIMIT: "{{ .Values.resources.limits.cpu | default '800m' }}"
   MEMORY_REQUEST: "{{ .Values.resources.requests.memory | default '256Mi' }}"
   MEMORY_LIMIT: "{{ .Values.resources.limits.memory | default '800Mi' }}"
-  
+
   # Service configuration
   SERVICE_TYPE: "{{ .Values.service.type | default 'ClusterIP' }}"
   SERVICE_PORT: "{{ .Values.service.port | default 80 }}"
   SERVICE_TARGET_PORT: "{{ .Values.service.targetPort | default 5000 }}"
-  
+
   # Ingress configuration
   INGRESS_ENABLED: "{{ .Values.ingress.enabled | default 'true' }}"
   INGRESS_CLASS: "{{ .Values.ingress.className | default 'nginx' }}"
   INGRESS_HOST: "{{ (index .Values.ingress.hosts 0).host | default 'eks-cloudforge.local' }}"
-  
+
   # Application information
   APP_NAME: "EKS CloudForge"
   APP_VERSION: "{{ .Chart.AppVersion | default '1.0.0' }}"
   APP_DESCRIPTION: "A cost-optimized Flask application for EKS deployment"
   APP_AUTHOR: "DevOps Team"
   APP_LICENSE: "MIT"
-  
+
   # Project information
   PROJECT_NAME: "{{ .Values.global.labels.app | default 'eks-cloudforge-app' }}"
   PROJECT_ENVIRONMENT: "{{ .Values.global.labels.environment | default 'dev' }}"
   PROJECT_OWNER: "{{ .Values.global.labels.owner | default 'devops-team' }}"
   PROJECT_COST_CENTER: "{{ .Values.global.annotations.cost-center | default 'devops' }}"
-  
+
   # Infrastructure information
   INFRASTRUCTURE_PROVIDER: "AWS"
   INFRASTRUCTURE_REGION: "us-east-1"
