@@ -262,6 +262,11 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Create ECR repository if it doesn't exist
+        run: |
+          aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} || \
+          aws ecr create-repository --repository-name ${{ env.ECR_REPOSITORY }} --image-scanning-configuration scanOnPush=true
+
       - name: Build, tag, and push image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -286,7 +291,7 @@ jobs:
 
       - name: Upload Docker scan results
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && hashFiles('trivy-image-results.sarif') != ''
         with:
           sarif_file: 'trivy-image-results.sarif'
 
@@ -322,7 +327,12 @@ jobs:
         run: |
           cd terraform
           terraform init
-          terraform workspace select ${{ env.TF_WORKSPACE }} || terraform workspace new ${{ env.TF_WORKSPACE }}
+          # Check if workspace exists, create if it doesn't
+          if ! terraform workspace list | grep -q "${{ env.TF_WORKSPACE }}"; then
+            terraform workspace new ${{ env.TF_WORKSPACE }}
+          else
+            terraform workspace select ${{ env.TF_WORKSPACE }}
+          fi
 
       - name: Terraform Plan
         id: plan
@@ -380,7 +390,12 @@ jobs:
 
       - name: Setup kubectl
         run: |
-          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ needs.infrastructure.outputs.cluster-name }}
+          # Use cluster name from infrastructure output if available, otherwise use default
+          CLUSTER_NAME="${{ needs.infrastructure.outputs.cluster-name }}"
+          if [ -z "$CLUSTER_NAME" ]; then
+            CLUSTER_NAME="eks-cloudforge-cluster"
+          fi
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME
 
       - name: Setup Helm
         uses: azure/setup-helm@v3
@@ -390,10 +405,16 @@ jobs:
       - name: Deploy application with Helm
         run: |
           cd helm/app-chart
+          # Use ECR URL from infrastructure output if available, otherwise use default
+          ECR_URL="${{ needs.infrastructure.outputs.ecr-url }}"
+          if [ -z "$ECR_URL" ]; then
+            ECR_URL="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
+          fi
+          
           helm upgrade --install ${{ env.APP_NAME }} . \
             --namespace default \
             --create-namespace \
-            --set image.repository=${{ needs.infrastructure.outputs.ecr-url }} \
+            --set image.repository=$ECR_URL \
             --set image.tag=${{ env.APP_VERSION }} \
             --set global.labels.environment=${{ env.TF_VAR_ENVIRONMENT }} \
             --wait \
@@ -444,7 +465,12 @@ jobs:
 
       - name: Setup kubectl
         run: |
-          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ needs.infrastructure.outputs.cluster-name }}
+          # Use cluster name from infrastructure output if available, otherwise use default
+          CLUSTER_NAME="${{ needs.infrastructure.outputs.cluster-name }}"
+          if [ -z "$CLUSTER_NAME" ]; then
+            CLUSTER_NAME="eks-cloudforge-cluster"
+          fi
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME
 
       - name: Check application health
         run: |
@@ -546,15 +572,24 @@ jobs:
         run: |
           cd terraform
           terraform init
-          terraform workspace select ${{ env.TF_WORKSPACE }} || exit 0
-          terraform destroy -auto-approve -var="environment=${{ env.TF_VAR_ENVIRONMENT }}"
+          # Check if workspace exists before trying to select it
+          if terraform workspace list | grep -q "${{ env.TF_WORKSPACE }}"; then
+            terraform workspace select ${{ env.TF_WORKSPACE }}
+            terraform destroy -auto-approve -var="environment=${{ env.TF_VAR_ENVIRONMENT }}"
+          else
+            echo "Workspace ${{ env.TF_WORKSPACE }} does not exist, skipping cleanup"
+          fi
 
       - name: Cleanup ECR images
         run: |
-          # Delete failed build images
-          aws ecr batch-delete-image \
-            --repository-name ${{ env.ECR_REPOSITORY }} \
-            --image-ids imageTag=${{ env.APP_VERSION }} || true
+          # Check if repository exists before trying to delete images
+          if aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} &> /dev/null; then
+            aws ecr batch-delete-image \
+              --repository-name ${{ env.ECR_REPOSITORY }} \
+              --image-ids imageTag=${{ env.APP_VERSION }} || true
+          else
+            echo "ECR repository ${{ env.ECR_REPOSITORY }} does not exist, skipping cleanup"
+          fi
 
       - name: Notify failure
         run: |
