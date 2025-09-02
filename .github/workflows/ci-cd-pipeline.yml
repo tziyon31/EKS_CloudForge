@@ -211,7 +211,7 @@ jobs:
         with:
           python-version: '3.11'
 
-            - name: Install Bandit
+      - name: Install Bandit
         run: pip install bandit
 
       - name: Run Bandit security analysis
