@@ -445,42 +445,42 @@ jobs:
             exit 1
           fi
       
-             - name: Deploy monitoring stack
-         run: |
-           # Deploy monitoring if not exists
-           if ! kubectl get namespace monitoring &> /dev/null; then
-             echo "Deploying monitoring stack..."
-             chmod +x monitoring/deploy-monitoring.sh
-             ./monitoring/deploy-monitoring.sh
-           else
-             echo "Monitoring stack already exists"
-           fi
-       
-       - name: Generate deployment report
-         run: |
-           echo "## Deployment Report" >> $GITHUB_STEP_SUMMARY
-           echo "" >> $GITHUB_STEP_SUMMARY
-           echo "**Environment:** ${{ env.TF_VAR_ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-           echo "**Application:** ${{ env.APP_NAME }}" >> $GITHUB_STEP_SUMMARY
-           echo "**Version:** ${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
-           echo "**Status:** ✅ Successfully deployed" >> $GITHUB_STEP_SUMMARY
-           echo "" >> $GITHUB_STEP_SUMMARY
-           echo "### Resources Created:" >> $GITHUB_STEP_SUMMARY
-           echo "- EKS Cluster: ${{ needs.infrastructure.outputs.cluster-name }}" >> $GITHUB_STEP_SUMMARY
-           echo "- ECR Repository: ${{ needs.infrastructure.outputs.ecr-url }}" >> $GITHUB_STEP_SUMMARY
-           echo "- Application Pods: $(kubectl get pods -l app=${{ env.APP_NAME }} -n default --no-headers | wc -l)" >> $GITHUB_STEP_SUMMARY
-           echo "- Monitoring Stack: Prometheus, Grafana, AlertManager" >> $GITHUB_STEP_SUMMARY
-           echo "" >> $GITHUB_STEP_SUMMARY
-           echo "### Access URLs:" >> $GITHUB_STEP_SUMMARY
-           echo "- Application: http://eks-cloudforge.local" >> $GITHUB_STEP_SUMMARY
-           echo "- Grafana: http://grafana.eks-cloudforge.local (admin/admin123)" >> $GITHUB_STEP_SUMMARY
-           echo "- Prometheus: http://prometheus-operated.monitoring.svc.cluster.local:9090" >> $GITHUB_STEP_SUMMARY
-           echo "" >> $GITHUB_STEP_SUMMARY
-           echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
-           echo "1. Monitor application health via Grafana" >> $GITHUB_STEP_SUMMARY
-           echo "2. Set up alerts and notifications" >> $GITHUB_STEP_SUMMARY
-           echo "3. Configure custom domain and SSL" >> $GITHUB_STEP_SUMMARY
-           echo "4. Review cost optimization opportunities" >> $GITHUB_STEP_SUMMARY
+      - name: Deploy monitoring stack
+        run: |
+          # Deploy monitoring if not exists
+          if ! kubectl get namespace monitoring &> /dev/null; then
+            echo "Deploying monitoring stack..."
+            chmod +x monitoring/deploy-monitoring.sh
+            ./monitoring/deploy-monitoring.sh
+          else
+            echo "Monitoring stack already exists"
+          fi
+      
+      - name: Generate deployment report
+        run: |
+          echo "## Deployment Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ env.TF_VAR_ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Application:** ${{ env.APP_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ✅ Successfully deployed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Resources Created:" >> $GITHUB_STEP_SUMMARY
+          echo "- EKS Cluster: ${{ needs.infrastructure.outputs.cluster-name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ECR Repository: ${{ needs.infrastructure.outputs.ecr-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Application Pods: $(kubectl get pods -l app=${{ env.APP_NAME }} -n default --no-headers | wc -l)" >> $GITHUB_STEP_SUMMARY
+          echo "- Monitoring Stack: Prometheus, Grafana, AlertManager" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Access URLs:" >> $GITHUB_STEP_SUMMARY
+          echo "- Application: http://eks-cloudforge.local" >> $GITHUB_STEP_SUMMARY
+          echo "- Grafana: http://grafana.eks-cloudforge.local (admin/admin123)" >> $GITHUB_STEP_SUMMARY
+          echo "- Prometheus: http://prometheus-operated.monitoring.svc.cluster.local:9090" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Monitor application health via Grafana" >> $GITHUB_STEP_SUMMARY
+          echo "2. Set up alerts and notifications" >> $GITHUB_STEP_SUMMARY
+          echo "3. Configure custom domain and SSL" >> $GITHUB_STEP_SUMMARY
+          echo "4. Review cost optimization opportunities" >> $GITHUB_STEP_SUMMARY
 
   # =============================================================================
   # JOB 7: CLEANUP (ON FAILURE)
