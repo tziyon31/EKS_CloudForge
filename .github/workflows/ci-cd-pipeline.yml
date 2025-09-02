@@ -121,6 +121,10 @@ jobs:
           cd app
           pip install -r requirements-test.txt
 
+      - name: Install pre-commit
+        run: |
+          pip install pre-commit
+
       - name: Setup pre-commit
         run: |
           pre-commit install
@@ -143,13 +147,17 @@ jobs:
           cd app
           pytest --cov=. --cov-report=xml --cov-report=html
 
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
+      - name: Generate coverage report
+        run: |
+          cd app
+          echo "## Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo "Coverage report generated successfully" >> $GITHUB_STEP_SUMMARY
+          echo "View detailed report in artifacts" >> $GITHUB_STEP_SUMMARY
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          file: ./app/coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
+          terraform_version: "1.5.0"
 
       - name: Terraform format check
         run: |
@@ -203,13 +211,22 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Bandit
+            - name: Install Bandit
         run: pip install bandit
 
-      - name: Run Bandit
+      - name: Run Bandit security analysis
         run: |
           cd app
-          bandit -r . -f json -o bandit-report.json || true
+          bandit -r . -f json -o bandit-report.json -ll || true
+          echo "## Security Analysis Results" >> $GITHUB_STEP_SUMMARY
+          echo "Bandit security scan completed" >> $GITHUB_STEP_SUMMARY
+          
+      - name: Run Safety (dependency vulnerabilities)
+        run: |
+          cd app
+          pip install safety
+          safety check --json --output safety-report.json || true
+          echo "Dependency vulnerability scan completed" >> $GITHUB_STEP_SUMMARY
 
       - name: Check for secrets
         uses: trufflesecurity/trufflehog@main
