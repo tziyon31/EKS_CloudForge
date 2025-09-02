@@ -7,9 +7,6 @@
 # Configure the AWS Provider
 # This tells Terraform which cloud provider to use and how to authenticate
 terraform {
-  # Specify the required Terraform version for consistency
-  required_version = ">= 1.0"
-
   # Configure the required providers and their versions
   required_providers {
     # AWS Provider - for creating AWS resources (EC2, VPC, EKS, etc.)
@@ -54,15 +51,15 @@ provider "aws" {
 # Configure the Kubernetes Provider
 # This will be configured after the EKS cluster is created
 # We'll use data sources to get the cluster configuration
-provider "kubernetes" {
-  # Configuration will be added after EKS cluster creation
-  # This allows us to manage Kubernetes resources directly
-}
+# provider "kubernetes" {
+#   # Configuration will be added after EKS cluster creation
+#   # This allows us to manage Kubernetes resources directly
+# }
 
 # Configure the Helm Provider
 # This will be configured after the EKS cluster is created
 # We'll use data sources to get the cluster configuration
-provider "helm" {
-  # Configuration will be added after EKS cluster creation
-  # This allows us to deploy Helm charts to our EKS cluster
-}
+# provider "helm" {
+#   # Configuration will be added after EKS cluster creation
+#   # This allows us to deploy Helm charts to our EKS cluster
+# }
