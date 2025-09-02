@@ -493,4 +493,6 @@ if __name__ == "__main__":
     # Start the Flask application
     app.run(host=host, port=port, debug=False)
 
-# Trigger pipeline - Helm template fixes applied and ready for full CI/CD run
+# Trigger pipeline - Helm chart configmap and helper functions fixed, ready for full CI/CD run
+# Simplified configmap to use values.yaml data instead of complex template syntax
+# Fixed YAML parsing issues in helpers.tpl
