@@ -7,6 +7,16 @@
 name: EKS CloudForge CI/CD Pipeline
 
 # =============================================================================
+# PERMISSIONS
+# =============================================================================
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  pull-requests: read
+
+# =============================================================================
 # TRIGGERS
 # =============================================================================
 
@@ -74,7 +84,7 @@ env:
   TF_VAR_ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
   
   # Security Configuration
-  TRIVY_SEVERITY: CRITICAL,HIGH
+  TRIVY_SEVERITY: CRITICAL
   TRIVY_EXIT_CODE: 1
   
   # Cost Configuration

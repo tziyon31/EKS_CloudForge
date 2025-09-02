@@ -5,10 +5,10 @@
 # All packages are chosen for minimal resource usage and security
 
 # Core Flask framework - lightweight web framework
-Flask==3.0.0
+Flask>=2.3.3
 
 # System monitoring and metrics - lightweight alternative to heavy monitoring tools
-psutil==5.9.6
+psutil>=5.9.6
 
 # Additional Flask utilities (optional, but useful)
 # Uncomment if you need additional Flask features
