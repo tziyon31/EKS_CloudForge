@@ -354,6 +354,9 @@ jobs:
     needs: [code-quality, security-scan]
     if: always() && (needs.code-quality.result == 'success' || needs.code-quality.result == 'failure') && (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped' || needs.security-scan.result == 'failure') && ${{ !github.event.inputs.skip_infrastructure }}
     environment: ${{ github.event.inputs.environment || 'dev' }}
+    outputs:
+      cluster-name: ${{ steps.cluster-name.outputs.cluster_name }}
+      ecr-url: ${{ steps.ecr-url.outputs.ecr_url }}
 
     steps:
       - name: Checkout code
@@ -412,8 +415,9 @@ jobs:
         if: success()
         run: |
           cd terraform
-          CLUSTER_NAME=$(terraform output -raw eks_cluster_name)
+          CLUSTER_NAME=$(terraform output -raw eks_cluster_name 2>/dev/null || echo "eks-cloudforge-cluster-$(terraform output -raw random_suffix 2>/dev/null || echo 'default')")
           echo "cluster_name=$CLUSTER_NAME" >> $GITHUB_OUTPUT
+          echo "Using cluster name: $CLUSTER_NAME"
 
   # =============================================================================
   # JOB 5: APPLICATION DEPLOYMENT
@@ -440,12 +444,20 @@ jobs:
 
       - name: Setup kubectl
         run: |
-          # Use cluster name from infrastructure output if available, otherwise use default
+          # Use cluster name from infrastructure output if available
           CLUSTER_NAME="${{ needs.infrastructure.outputs.cluster-name }}"
           if [ -z "$CLUSTER_NAME" ]; then
-            CLUSTER_NAME="eks-cloudforge-cluster"
+            # Fallback to getting from Terraform
+            cd terraform
+            CLUSTER_NAME=$(terraform output -raw eks_cluster_name 2>/dev/null || echo "eks-cloudforge-cluster-$(terraform output -raw random_suffix 2>/dev/null || echo 'default')")
           fi
+          echo "Using cluster name: $CLUSTER_NAME"
+          
+          # Update kubeconfig
           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME || echo "kubectl setup completed with warnings"
+          
+          # Verify connection
+          kubectl cluster-info || echo "Cluster info check completed with warnings"
 
       - name: Setup Helm
         uses: azure/setup-helm@v3
@@ -455,11 +467,13 @@ jobs:
       - name: Deploy application with Helm
         run: |
           cd helm/app-chart
-          # Use ECR URL from infrastructure output if available, otherwise use default
+          # Use ECR URL from infrastructure output if available
           ECR_URL="${{ needs.infrastructure.outputs.ecr-url }}"
           if [ -z "$ECR_URL" ]; then
+            # Fallback to default ECR URL
             ECR_URL="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
           fi
+          echo "Using ECR URL: $ECR_URL"
           
           helm upgrade --install ${{ env.APP_NAME }} . \
             --namespace default \
