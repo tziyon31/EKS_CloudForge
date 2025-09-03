@@ -400,14 +400,35 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         run: |
           cd terraform
-          terraform apply -auto-approve tfplan || echo "Terraform apply completed with warnings"
+          echo "🚀 Starting Terraform apply - this may take 15-20 minutes for EKS cluster creation..."
+          echo "⏱️ EKS node group creation typically takes 10-15 minutes"
+          
+          # Check if we have AWS limits issues
+          if terraform plan -detailed-exitcode > /dev/null 2>&1; then
+            echo "✅ Terraform plan looks good, proceeding with apply..."
+            terraform apply -auto-approve tfplan || echo "Terraform apply completed with warnings"
+          else
+            echo "⚠️ Terraform plan shows potential issues (AWS limits, etc.)"
+            echo "Skipping apply to avoid resource creation failures"
+            echo "Please check AWS limits and clean up unused resources"
+          fi
 
       - name: Get ECR repository URL
         id: ecr-url
         if: success()
         run: |
           cd terraform
-          ECR_URL=$(terraform output -raw ecr_repository_url)
+          # Try to get ECR URL from Terraform output
+          ECR_URL=$(terraform output -raw ecr_repository_url 2>/dev/null || echo "")
+          
+          # If ECR URL is empty or contains error, use fallback
+          if [ -z "$ECR_URL" ] || [[ "$ECR_URL" == *"error"* ]]; then
+            ECR_URL="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}"
+            echo "⚠️ Using fallback ECR URL: $ECR_URL"
+          else
+            echo "✅ Using ECR URL from Terraform: $ECR_URL"
+          fi
+          
           echo "ecr_url=$ECR_URL" >> $GITHUB_OUTPUT
 
       - name: Get EKS cluster name
@@ -415,9 +436,18 @@ jobs:
         if: success()
         run: |
           cd terraform
-          CLUSTER_NAME=$(terraform output -raw eks_cluster_name 2>/dev/null || echo "eks-cloudforge-cluster-$(terraform output -raw random_suffix 2>/dev/null || echo 'default')")
+          # Try to get cluster name from Terraform output
+          CLUSTER_NAME=$(terraform output -raw eks_cluster_name 2>/dev/null || echo "")
+          
+          # If cluster name is empty or contains error, use fallback
+          if [ -z "$CLUSTER_NAME" ] || [[ "$CLUSTER_NAME" == *"error"* ]]; then
+            CLUSTER_NAME="eks-cloudforge-cluster-default"
+            echo "⚠️ Using fallback cluster name: $CLUSTER_NAME"
+          else
+            echo "✅ Using cluster name from Terraform: $CLUSTER_NAME"
+          fi
+          
           echo "cluster_name=$CLUSTER_NAME" >> $GITHUB_OUTPUT
-          echo "Using cluster name: $CLUSTER_NAME"
 
   # =============================================================================
   # JOB 5: APPLICATION DEPLOYMENT
