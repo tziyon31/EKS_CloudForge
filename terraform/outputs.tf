@@ -76,14 +76,14 @@ output "ecr_repository_arn" {
 # The ID of the VPC that was created
 output "vpc_id" {
   description = "ID of the VPC"
-  value       = aws_vpc.main.id
+  value       = local.vpc_id
 }
 
 # VPC CIDR block
 # The IP range for the VPC
 output "vpc_cidr_block" {
   description = "CIDR block of the VPC"
-  value       = aws_vpc.main.cidr_block
+  value       = var.use_existing_vpc ? data.aws_vpc.existing[0].cidr_block : aws_vpc.main[0].cidr_block
 }
 
 # Public subnet IDs

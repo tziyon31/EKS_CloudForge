@@ -258,7 +258,7 @@ resource "aws_route_table" "private" {
   count = length(var.availability_zones)
 
   # VPC this route table belongs to
-  vpc_id = aws_vpc.main.id
+  vpc_id = local.vpc_id
 
   # Route all internet traffic (0.0.0.0/0) through the NAT Gateway
   route {
@@ -521,7 +521,7 @@ resource "aws_security_group" "eks_cluster" {
   name_prefix = "${var.project_name}-eks-cluster-${random_id.unique_suffix.hex}-"
 
   # VPC this security group belongs to
-  vpc_id = aws_vpc.main.id
+  vpc_id = local.vpc_id
 
   # Description of the security group
   description = "Security group for EKS cluster"
@@ -557,7 +557,7 @@ resource "aws_security_group" "eks_worker" {
   name_prefix = "${var.project_name}-eks-worker-${random_id.unique_suffix.hex}-"
 
   # VPC this security group belongs to
-  vpc_id = aws_vpc.main.id
+  vpc_id = local.vpc_id
 
   # Description of the security group
   description = "Security group for EKS worker nodes"
