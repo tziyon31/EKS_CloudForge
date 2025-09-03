@@ -14,6 +14,7 @@
 ---
 
 <!-- omit in toc -->
+[![CI/CD Pipeline](https://github.com/tziyon31/EKS_CloudForge/workflows/EKS%20CloudForge%20CI%2FCD%20Pipeline/badge.svg)](https://github.com/tziyon31/EKS_CloudForge/actions)
 ## Table of Contents
 
 - [🚀 Overview](#-overview)
