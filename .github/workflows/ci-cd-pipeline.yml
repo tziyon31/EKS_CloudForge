@@ -483,11 +483,18 @@ jobs:
           fi
           echo "Using cluster name: $CLUSTER_NAME"
           
-          # Update kubeconfig
-          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME || echo "kubectl setup completed with warnings"
-          
-          # Verify connection
-          kubectl cluster-info || echo "Cluster info check completed with warnings"
+          # Check if cluster exists before trying to connect
+          if aws eks describe-cluster --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME &> /dev/null; then
+            echo "✅ Cluster $CLUSTER_NAME exists, updating kubeconfig..."
+            aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME
+            kubectl cluster-info
+          else
+            echo "⚠️ Cluster $CLUSTER_NAME does not exist"
+            echo "This usually means Terraform failed to create the cluster due to AWS limits"
+            echo "Please check AWS limits and clean up unused resources"
+            echo "Skipping kubectl setup and Helm deployment"
+            exit 1
+          fi
 
       - name: Setup Helm
         uses: azure/setup-helm@v3
@@ -505,15 +512,23 @@ jobs:
           fi
           echo "Using ECR URL: $ECR_URL"
           
-          helm upgrade --install ${{ env.APP_NAME }} . \
-            --namespace default \
-            --create-namespace \
-            --set image.repository=$ECR_URL \
-            --set image.tag=${{ env.APP_VERSION }} \
-            --set global.labels.environment=${{ env.TF_VAR_ENVIRONMENT }} \
-            --wait \
-            --timeout 10m \
-            --atomic || echo "Helm deployment completed with warnings"
+          # Check if we can connect to the cluster
+          if kubectl cluster-info &> /dev/null; then
+            echo "✅ Connected to cluster, proceeding with Helm deployment..."
+            helm upgrade --install ${{ env.APP_NAME }} . \
+              --namespace default \
+              --create-namespace \
+              --set image.repository=$ECR_URL \
+              --set image.tag=${{ env.APP_VERSION }} \
+              --set global.labels.environment=${{ env.TF_VAR_ENVIRONMENT }} \
+              --wait \
+              --timeout 10m \
+              --atomic || echo "Helm deployment completed with warnings"
+          else
+            echo "⚠️ Cannot connect to cluster, skipping Helm deployment"
+            echo "Please ensure the EKS cluster is created and accessible"
+            exit 1
+          fi
 
       - name: Verify deployment
         run: |
@@ -610,15 +625,23 @@ jobs:
             echo "Monitoring stack already exists"
           fi
 
-      - name: Generate deployment report
-        run: |
-          echo "## Deployment Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ env.TF_VAR_ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Application:** ${{ env.APP_NAME }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** ${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** ✅ Deployment completed" >> $GITHUB_STEP_SUMMARY
-          echo "**Note:** Some steps may have completed with warnings but the pipeline continued successfully." >> $GITHUB_STEP_SUMMARY
+             - name: Generate deployment report
+         run: |
+           echo "## Deployment Report" >> $GITHUB_STEP_SUMMARY
+           echo "" >> $GITHUB_STEP_SUMMARY
+           echo "**Environment:** ${{ env.TF_VAR_ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
+           echo "**Application:** ${{ env.APP_NAME }}" >> $GITHUB_STEP_SUMMARY
+           echo "**Version:** ${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
+           
+           # Check if cluster exists
+           if kubectl cluster-info &> /dev/null; then
+             echo "**Status:** ✅ Deployment completed" >> $GITHUB_STEP_SUMMARY
+             echo "**Note:** Some steps may have completed with warnings but the pipeline continued successfully." >> $GITHUB_STEP_SUMMARY
+           else
+             echo "**Status:** ⚠️ Deployment failed - EKS cluster not available" >> $GITHUB_STEP_SUMMARY
+             echo "**Issue:** AWS limits exceeded (VPCs or EIPs)" >> $GITHUB_STEP_SUMMARY
+             echo "**Solution:** Clean up unused AWS resources and retry" >> $GITHUB_STEP_SUMMARY
+           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Resources Created:" >> $GITHUB_STEP_SUMMARY
           echo "- EKS Cluster: ${{ needs.infrastructure.outputs.cluster-name }}" >> $GITHUB_STEP_SUMMARY
