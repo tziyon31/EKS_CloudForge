@@ -54,10 +54,22 @@ variable "aws_region" {
 variable "availability_zones" {
   description = "List of availability zones to use for subnets"
   type        = list(string)
-  default     = ["us-east-1a", "us-east-1b"]
+  default     = ["us-east-1a"]
 
-  # Using 2 AZs for high availability
-  # More AZs = higher cost but better availability
+  # Using 1 AZ to avoid AWS limits (VPCs and EIPs)
+  # Can scale to 2+ AZs later when limits are increased
+}
+
+variable "use_existing_vpc" {
+  description = "Whether to use an existing VPC instead of creating a new one"
+  type        = bool
+  default     = true
+}
+
+variable "existing_vpc_id" {
+  description = "ID of existing VPC to use (if use_existing_vpc is true)"
+  type        = string
+  default     = "vpc-04bf56d087bf33531"  # The one without suffix
 }
 
 # =============================================================================

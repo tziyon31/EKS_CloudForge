@@ -94,8 +94,16 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
 # Create a custom VPC with public and private subnets
 # This provides network isolation and security
 
-# Create the main VPC
+# Use existing VPC or create new one
+data "aws_vpc" "existing" {
+  count = var.use_existing_vpc ? 1 : 0
+  id    = var.existing_vpc_id
+}
+
+# Create the main VPC (only if not using existing)
 resource "aws_vpc" "main" {
+  count = var.use_existing_vpc ? 0 : 1
+  
   # CIDR block defines the IP range for the VPC
   cidr_block = var.vpc_cidr_block
 
@@ -112,11 +120,16 @@ resource "aws_vpc" "main" {
   }
 }
 
+# Local value for VPC ID
+locals {
+  vpc_id = var.use_existing_vpc ? data.aws_vpc.existing[0].id : aws_vpc.main[0].id
+}
+
 # Create an Internet Gateway
 # This allows instances in public subnets to access the internet
 resource "aws_internet_gateway" "main" {
   # Attach to our VPC
-  vpc_id = aws_vpc.main.id
+  vpc_id = local.vpc_id
 
   tags = {
     Name = "${var.project_name}-igw-${random_id.unique_suffix.hex}"
@@ -130,7 +143,7 @@ resource "aws_subnet" "public" {
   count = length(var.availability_zones)
 
   # VPC this subnet belongs to
-  vpc_id = aws_vpc.main.id
+  vpc_id = local.vpc_id
 
   # CIDR block for this subnet
   cidr_block = var.public_subnet_cidrs[count.index]
@@ -156,7 +169,7 @@ resource "aws_subnet" "private" {
   count = length(var.availability_zones)
 
   # VPC this subnet belongs to
-  vpc_id = aws_vpc.main.id
+  vpc_id = local.vpc_id
 
   # CIDR block for this subnet
   cidr_block = var.private_subnet_cidrs[count.index]
@@ -179,7 +192,7 @@ resource "aws_subnet" "private" {
 # This defines how traffic flows in public subnets
 resource "aws_route_table" "public" {
   # VPC this route table belongs to
-  vpc_id = aws_vpc.main.id
+  vpc_id = local.vpc_id
 
   # Route all internet traffic (0.0.0.0/0) through the Internet Gateway
   route {
