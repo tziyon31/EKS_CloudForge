@@ -625,8 +625,8 @@ jobs:
             echo "Monitoring stack already exists"
           fi
 
-             - name: Generate deployment report
-         run: |
+      - name: Generate deployment report
+        run: |
            echo "## Deployment Report" >> $GITHUB_STEP_SUMMARY
            echo "" >> $GITHUB_STEP_SUMMARY
            echo "**Environment:** ${{ env.TF_VAR_ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
