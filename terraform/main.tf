@@ -26,6 +26,16 @@ data "aws_vpc" "default" {
 }
 
 # =============================================================================
+# RANDOM IDENTIFIERS FOR UNIQUE RESOURCE NAMES
+# =============================================================================
+# Generate unique identifiers to avoid naming conflicts
+# This ensures our resources have globally unique names
+
+resource "random_id" "unique_suffix" {
+  byte_length = 4
+}
+
+# =============================================================================
 # S3 BUCKET FOR TERRAFORM STATE
 # =============================================================================
 # This bucket stores the Terraform state file
@@ -34,7 +44,7 @@ data "aws_vpc" "default" {
 
 resource "aws_s3_bucket" "terraform_state" {
   # Bucket name must be globally unique across all AWS accounts
-  bucket = var.terraform_state_bucket_name
+  bucket = "${var.terraform_state_bucket_name}-${random_id.unique_suffix.hex}"
 
   # Tags for cost tracking and resource management
   tags = {
@@ -98,7 +108,7 @@ resource "aws_vpc" "main" {
   enable_dns_support = true
 
   tags = {
-    Name = "${var.project_name}-vpc"
+    Name = "${var.project_name}-vpc-${random_id.unique_suffix.hex}"
   }
 }
 
@@ -109,7 +119,7 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "${var.project_name}-igw"
+    Name = "${var.project_name}-igw-${random_id.unique_suffix.hex}"
   }
 }
 
@@ -133,7 +143,7 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "${var.project_name}-public-subnet-${count.index + 1}"
+    Name = "${var.project_name}-public-subnet-${count.index + 1}-${random_id.unique_suffix.hex}"
     # Tag for Kubernetes to identify public subnets
     "kubernetes.io/role/elb" = "1"
   }
@@ -159,7 +169,7 @@ resource "aws_subnet" "private" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name = "${var.project_name}-private-subnet-${count.index + 1}"
+    Name = "${var.project_name}-private-subnet-${count.index + 1}-${random_id.unique_suffix.hex}"
     # Tag for Kubernetes to identify private subnets
     "kubernetes.io/role/internal-elb" = "1"
   }
@@ -178,7 +188,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name = "${var.project_name}-public-rt"
+    Name = "${var.project_name}-public-rt-${random_id.unique_suffix.hex}"
   }
 }
 
@@ -204,7 +214,7 @@ resource "aws_eip" "nat" {
   domain = "vpc"
 
   tags = {
-    Name = "${var.project_name}-nat-eip-${count.index + 1}"
+    Name = "${var.project_name}-nat-eip-${count.index + 1}-${random_id.unique_suffix.hex}"
   }
 }
 
@@ -221,7 +231,7 @@ resource "aws_nat_gateway" "main" {
   subnet_id = aws_subnet.public[count.index].id
 
   tags = {
-    Name = "${var.project_name}-nat-gateway-${count.index + 1}"
+    Name = "${var.project_name}-nat-gateway-${count.index + 1}-${random_id.unique_suffix.hex}"
   }
 
   # Depend on Internet Gateway to ensure it exists first
@@ -244,7 +254,7 @@ resource "aws_route_table" "private" {
   }
 
   tags = {
-    Name = "${var.project_name}-private-rt-${count.index + 1}"
+    Name = "${var.project_name}-private-rt-${count.index + 1}-${random_id.unique_suffix.hex}"
   }
 }
 
@@ -269,7 +279,7 @@ resource "aws_route_table_association" "private" {
 # Create IAM role for EKS cluster
 # This role allows EKS to manage cluster resources
 resource "aws_iam_role" "eks_cluster" {
-  name = "${var.project_name}-eks-cluster-role"
+  name = "${var.project_name}-eks-cluster-role-${random_id.unique_suffix.hex}"
 
   # Trust policy allows EKS to assume this role
   assume_role_policy = jsonencode({
@@ -299,7 +309,7 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
 # Create IAM role for EKS node groups
 # This role allows EKS worker nodes to access AWS services
 resource "aws_iam_role" "eks_node_group" {
-  name = "${var.project_name}-eks-node-group-role"
+  name = "${var.project_name}-eks-node-group-role-${random_id.unique_suffix.hex}"
 
   # Trust policy allows EKS node groups to assume this role
   assume_role_policy = jsonencode({
@@ -354,7 +364,7 @@ resource "aws_iam_role_policy_attachment" "ecr_read_only_policy" {
 
 resource "aws_eks_cluster" "main" {
   # Name of the EKS cluster
-  name = var.eks_cluster_name
+  name = "${var.eks_cluster_name}-${random_id.unique_suffix.hex}"
 
   # Kubernetes version for the cluster
   version = var.eks_cluster_version
@@ -381,7 +391,7 @@ resource "aws_eks_cluster" "main" {
   ]
 
   tags = {
-    Name = var.eks_cluster_name
+    Name = "${var.eks_cluster_name}-${random_id.unique_suffix.hex}"
   }
 }
 
@@ -393,7 +403,7 @@ resource "aws_eks_cluster" "main" {
 
 resource "aws_eks_node_group" "main" {
   # Name of the node group
-  node_group_name = "${var.project_name}-node-group"
+  node_group_name = "${var.project_name}-node-group-${random_id.unique_suffix.hex}"
 
   # EKS cluster this node group belongs to
   cluster_name = aws_eks_cluster.main.name
@@ -434,7 +444,7 @@ resource "aws_eks_node_group" "main" {
   ]
 
   tags = {
-    Name = "${var.project_name}-node-group"
+    Name = "${var.project_name}-node-group-${random_id.unique_suffix.hex}"
   }
 }
 
@@ -446,7 +456,7 @@ resource "aws_eks_node_group" "main" {
 
 resource "aws_ecr_repository" "app" {
   # Name of the ECR repository
-  name = var.ecr_repository_name
+  name = "${var.ecr_repository_name}-${random_id.unique_suffix.hex}"
 
   # Image tag mutability setting
   image_tag_mutability = var.ecr_image_tag_mutability
@@ -456,7 +466,7 @@ resource "aws_ecr_repository" "app" {
   force_delete = true
 
   tags = {
-    Name = var.ecr_repository_name
+    Name = "${var.ecr_repository_name}-${random_id.unique_suffix.hex}"
   }
 }
 
@@ -495,7 +505,7 @@ resource "aws_ecr_lifecycle_policy" "app" {
 # Security group for EKS cluster
 resource "aws_security_group" "eks_cluster" {
   # Name of the security group
-  name_prefix = "${var.project_name}-eks-cluster-"
+  name_prefix = "${var.project_name}-eks-cluster-${random_id.unique_suffix.hex}-"
 
   # VPC this security group belongs to
   vpc_id = aws_vpc.main.id
@@ -524,14 +534,14 @@ resource "aws_security_group" "eks_cluster" {
   }
 
   tags = {
-    Name = "${var.project_name}-eks-cluster-sg"
+    Name = "${var.project_name}-eks-cluster-sg-${random_id.unique_suffix.hex}"
   }
 }
 
 # Security group for EKS worker nodes
 resource "aws_security_group" "eks_worker" {
   # Name of the security group
-  name_prefix = "${var.project_name}-eks-worker-"
+  name_prefix = "${var.project_name}-eks-worker-${random_id.unique_suffix.hex}-"
 
   # VPC this security group belongs to
   vpc_id = aws_vpc.main.id
@@ -560,6 +570,6 @@ resource "aws_security_group" "eks_worker" {
   }
 
   tags = {
-    Name = "${var.project_name}-eks-worker-sg"
+    Name = "${var.project_name}-eks-worker-sg-${random_id.unique_suffix.hex}"
   }
 }

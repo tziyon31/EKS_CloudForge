@@ -82,6 +82,7 @@ env:
   # Infrastructure Configuration
   TF_WORKSPACE: ${{ github.event.inputs.environment || 'dev' }}
   TF_VAR_ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
+  TF_VAR_PROJECT_NAME: eks-cloudforge
 
   # Security Configuration
   TRIVY_SEVERITY: CRITICAL
@@ -303,8 +304,10 @@ jobs:
 
       - name: Create ECR repository if it doesn't exist
         run: |
-          aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} || \
-          aws ecr create-repository --repository-name ${{ env.ECR_REPOSITORY }} --image-scanning-configuration scanOnPush=true || echo "ECR repository creation completed with warnings"
+          # Try to create ECR repository with unique name
+          UNIQUE_REPO_NAME="${ECR_REPOSITORY}-$(date +%s)"
+          aws ecr create-repository --repository-name $UNIQUE_REPO_NAME --image-scanning-configuration scanOnPush=true || echo "ECR repository creation completed with warnings"
+          echo "ECR_REPOSITORY=$UNIQUE_REPO_NAME" >> $GITHUB_ENV
 
       - name: Build, tag, and push image to Amazon ECR
         env:
@@ -387,7 +390,7 @@ jobs:
           cd terraform
           terraform plan \
             -var="environment=${{ env.TF_VAR_ENVIRONMENT }}" \
-            -var="project_name=eks-cloudforge" \
+            -var="project_name=${{ env.TF_VAR_PROJECT_NAME }}" \
             -out=tfplan
 
       - name: Terraform Apply
@@ -626,20 +629,21 @@ jobs:
           # Check if workspace exists before trying to select it
           if terraform workspace list | grep -q "${{ env.TF_WORKSPACE }}"; then
             terraform workspace select ${{ env.TF_WORKSPACE }}
-            terraform destroy -auto-approve -var="environment=${{ env.TF_VAR_ENVIRONMENT }}" || echo "Terraform destroy completed with warnings"
+            terraform destroy -auto-approve -var="environment=${{ env.TF_VAR_ENVIRONMENT }}" -var="project_name=${{ env.TF_VAR_PROJECT_NAME }}" || echo "Terraform destroy completed with warnings"
           else
             echo "Workspace ${{ env.TF_WORKSPACE }} does not exist, skipping cleanup"
           fi
 
       - name: Cleanup ECR images
         run: |
-          # Check if repository exists before trying to delete images
-          if aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} &> /dev/null; then
+          # Try to cleanup ECR repository with unique name
+          UNIQUE_REPO_NAME="${ECR_REPOSITORY}-$(date +%s)"
+          if aws ecr describe-repositories --repository-names $UNIQUE_REPO_NAME &> /dev/null; then
             aws ecr batch-delete-image \
-              --repository-name ${{ env.ECR_REPOSITORY }} \
+              --repository-name $UNIQUE_REPO_NAME \
               --image-ids imageTag=${{ env.APP_VERSION }} || echo "ECR cleanup completed with warnings"
           else
-            echo "ECR repository ${{ env.ECR_REPOSITORY }} does not exist, skipping cleanup"
+            echo "ECR repository $UNIQUE_REPO_NAME does not exist, skipping cleanup"
           fi
 
       - name: Notify failure

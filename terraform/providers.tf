@@ -26,7 +26,19 @@ terraform {
       source  = "hashicorp/helm" # Official Helm provider
       version = "~> 2.0"         # Use version 2.x
     }
+
+    # Random Provider - for generating unique identifiers
+    random = {
+      source  = "hashicorp/random" # Official Random provider
+      version = "~> 3.0"          # Use version 3.x
+    }
   }
+}
+
+# Configure the Random Provider
+# This provider generates random values for unique resource names
+provider "random" {
+  # No specific configuration needed
 }
 
 # Configure the AWS Provider
