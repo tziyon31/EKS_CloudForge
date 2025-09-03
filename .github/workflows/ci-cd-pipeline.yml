@@ -397,13 +397,12 @@ jobs:
             -out=tfplan
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         run: |
           cd terraform
           echo "🚀 Starting Terraform apply - this may take 15-20 minutes for EKS cluster creation..."
           echo "⏱️ EKS node group creation typically takes 10-15 minutes"
           
-          # Check if we have AWS limits issues
+          # Check if we have AWS limits issues before applying
           if terraform plan -detailed-exitcode > /dev/null 2>&1; then
             echo "✅ Terraform plan looks good, proceeding with apply..."
             terraform apply -auto-approve tfplan || echo "Terraform apply completed with warnings"
@@ -411,6 +410,8 @@ jobs:
             echo "⚠️ Terraform plan shows potential issues (AWS limits, etc.)"
             echo "Skipping apply to avoid resource creation failures"
             echo "Please check AWS limits and clean up unused resources"
+            echo "This will skip application deployment as well"
+            exit 1
           fi
 
       - name: Get ECR repository URL
@@ -472,29 +473,46 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup kubectl
-        run: |
-          # Use cluster name from infrastructure output if available
-          CLUSTER_NAME="${{ needs.infrastructure.outputs.cluster-name }}"
-          if [ -z "$CLUSTER_NAME" ]; then
-            # Fallback to getting from Terraform
-            cd terraform
-            CLUSTER_NAME=$(terraform output -raw eks_cluster_name 2>/dev/null || echo "eks-cloudforge-cluster-$(terraform output -raw random_suffix 2>/dev/null || echo 'default')")
-          fi
-          echo "Using cluster name: $CLUSTER_NAME"
-          
-          # Check if cluster exists before trying to connect
-          if aws eks describe-cluster --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME &> /dev/null; then
-            echo "✅ Cluster $CLUSTER_NAME exists, updating kubeconfig..."
-            aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME
-            kubectl cluster-info
-          else
-            echo "⚠️ Cluster $CLUSTER_NAME does not exist"
-            echo "This usually means Terraform failed to create the cluster due to AWS limits"
-            echo "Please check AWS limits and clean up unused resources"
-            echo "Skipping kubectl setup and Helm deployment"
-            exit 1
-          fi
+       - name: Check infrastructure status
+         run: |
+           # Check if infrastructure job succeeded
+           if [ "${{ needs.infrastructure.result }}" != "success" ]; then
+             echo "⚠️ Infrastructure deployment failed or was skipped"
+             echo "This usually means Terraform failed due to AWS limits"
+             echo "Skipping application deployment"
+             echo "Please check AWS limits and clean up unused resources"
+             exit 1
+           fi
+           
+           # Use cluster name from infrastructure output
+           CLUSTER_NAME="${{ needs.infrastructure.outputs.cluster-name }}"
+           if [ -z "$CLUSTER_NAME" ]; then
+             echo "⚠️ No cluster name available from infrastructure"
+             echo "Skipping application deployment"
+             exit 1
+           fi
+           echo "Using cluster name: $CLUSTER_NAME"
+           
+           # Check if cluster exists before trying to connect
+           if aws eks describe-cluster --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME &> /dev/null; then
+             echo "✅ Cluster $CLUSTER_NAME exists, proceeding with deployment..."
+           else
+             echo "⚠️ Cluster $CLUSTER_NAME does not exist"
+             echo "This usually means Terraform failed to create the cluster due to AWS limits"
+             echo "Please check AWS limits and clean up unused resources"
+             echo "Skipping application deployment"
+             exit 1
+           fi
+
+       - name: Setup kubectl
+         run: |
+           # Use cluster name from infrastructure output
+           CLUSTER_NAME="${{ needs.infrastructure.outputs.cluster-name }}"
+           echo "Setting up kubectl for cluster: $CLUSTER_NAME"
+           
+           # Update kubeconfig
+           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME
+           kubectl cluster-info
 
       - name: Setup Helm
         uses: azure/setup-helm@v3
@@ -527,6 +545,7 @@ jobs:
           else
             echo "⚠️ Cannot connect to cluster, skipping Helm deployment"
             echo "Please ensure the EKS cluster is created and accessible"
+            echo "Skipping deployment due to cluster connectivity issues"
             exit 1
           fi
 
@@ -572,14 +591,35 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup kubectl
-        run: |
-          # Use cluster name from infrastructure output if available, otherwise use default
-          CLUSTER_NAME="${{ needs.infrastructure.outputs.cluster-name }}"
-          if [ -z "$CLUSTER_NAME" ]; then
-            CLUSTER_NAME="eks-cloudforge-cluster"
-          fi
-          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME || echo "kubectl setup completed with warnings"
+       - name: Check deployment status
+         run: |
+           # Check if application deployment job succeeded
+           if [ "${{ needs.application-deployment.result }}" != "success" ]; then
+             echo "⚠️ Application deployment failed or was skipped"
+             echo "This usually means the EKS cluster was not available"
+             echo "Skipping monitoring setup"
+             echo "Please check AWS limits and ensure cluster is created"
+             exit 1
+           fi
+           
+           # Use cluster name from infrastructure output
+           CLUSTER_NAME="${{ needs.infrastructure.outputs.cluster-name }}"
+           if [ -z "$CLUSTER_NAME" ]; then
+             echo "⚠️ No cluster name available from infrastructure"
+             echo "Skipping monitoring setup"
+             exit 1
+           fi
+           echo "Using cluster name: $CLUSTER_NAME"
+
+       - name: Setup kubectl
+         run: |
+           # Use cluster name from infrastructure output
+           CLUSTER_NAME="${{ needs.infrastructure.outputs.cluster-name }}"
+           echo "Setting up kubectl for cluster: $CLUSTER_NAME"
+           
+           # Update kubeconfig
+           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME
+           kubectl cluster-info
 
       - name: Check application health
         run: |
