@@ -13,6 +13,17 @@
 
 ---
 
+[<img src="https://gstatic.com/cloudssh/images/open-btn.svg" alt="Open in Cloud Shell" height="32">](https://console.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/tziyon31/EKS_CloudForge&cloudshell_git_branch=main&cloudshell_working_dir=.)
+
+---
+
+### 🚀 **Pipeline Status**
+[![CI/CD Pipeline](https://github.com/tziyon31/EKS_CloudForge/workflows/EKS%20CloudForge%20CI%2FCD%20Pipeline/badge.svg)](https://github.com/tziyon31/EKS_CloudForge/actions)
+
+**Last Deployment**: [Check Actions](https://github.com/tziyon31/EKS_CloudForge/actions)
+
+---
+
 <!-- omit in toc -->
 [![CI/CD Pipeline](https://github.com/tziyon31/EKS_CloudForge/workflows/EKS%20CloudForge%20CI%2FCD%20Pipeline/badge.svg)](https://github.com/tziyon31/EKS_CloudForge/actions)
 ## Table of Contents
