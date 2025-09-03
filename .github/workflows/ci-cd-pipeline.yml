@@ -504,15 +504,15 @@ jobs:
              exit 1
            fi
 
-       - name: Setup kubectl
-         run: |
-           # Use cluster name from infrastructure output
-           CLUSTER_NAME="${{ needs.infrastructure.outputs.cluster-name }}"
-           echo "Setting up kubectl for cluster: $CLUSTER_NAME"
-           
-           # Update kubeconfig
-           aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME
-           kubectl cluster-info
+      - name: Setup kubectl
+        run: |
+          # Use cluster name from infrastructure output
+          CLUSTER_NAME="${{ needs.infrastructure.outputs.cluster-name }}"
+          echo "Setting up kubectl for cluster: $CLUSTER_NAME"
+          
+          # Update kubeconfig
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name $CLUSTER_NAME
+          kubectl cluster-info
 
       - name: Setup Helm
         uses: azure/setup-helm@v3
