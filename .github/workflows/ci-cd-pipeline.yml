@@ -627,21 +627,21 @@ jobs:
 
       - name: Generate deployment report
         run: |
-           echo "## Deployment Report" >> $GITHUB_STEP_SUMMARY
-           echo "" >> $GITHUB_STEP_SUMMARY
-           echo "**Environment:** ${{ env.TF_VAR_ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-           echo "**Application:** ${{ env.APP_NAME }}" >> $GITHUB_STEP_SUMMARY
-           echo "**Version:** ${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
-           
-           # Check if cluster exists
-           if kubectl cluster-info &> /dev/null; then
-             echo "**Status:** ✅ Deployment completed" >> $GITHUB_STEP_SUMMARY
-             echo "**Note:** Some steps may have completed with warnings but the pipeline continued successfully." >> $GITHUB_STEP_SUMMARY
-           else
-             echo "**Status:** ⚠️ Deployment failed - EKS cluster not available" >> $GITHUB_STEP_SUMMARY
-             echo "**Issue:** AWS limits exceeded (VPCs or EIPs)" >> $GITHUB_STEP_SUMMARY
-             echo "**Solution:** Clean up unused AWS resources and retry" >> $GITHUB_STEP_SUMMARY
-           fi
+          echo "## Deployment Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ env.TF_VAR_ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Application:** ${{ env.APP_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ env.APP_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          
+          # Check if cluster exists
+          if kubectl cluster-info &> /dev/null; then
+            echo "**Status:** ✅ Deployment completed" >> $GITHUB_STEP_SUMMARY
+            echo "**Note:** Some steps may have completed with warnings but the pipeline continued successfully." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Status:** ⚠️ Deployment failed - EKS cluster not available" >> $GITHUB_STEP_SUMMARY
+            echo "**Issue:** AWS limits exceeded (VPCs or EIPs)" >> $GITHUB_STEP_SUMMARY
+            echo "**Solution:** Clean up unused AWS resources and retry" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Resources Created:" >> $GITHUB_STEP_SUMMARY
           echo "- EKS Cluster: ${{ needs.infrastructure.outputs.cluster-name }}" >> $GITHUB_STEP_SUMMARY
