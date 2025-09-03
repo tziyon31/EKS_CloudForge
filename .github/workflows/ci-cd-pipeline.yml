@@ -483,7 +483,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-            - name: Check infrastructure status
+      - name: Check infrastructure status
         run: |
           # Check if infrastructure job succeeded
           if [ "${{ needs.infrastructure.result }}" != "success" ]; then
@@ -633,7 +633,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-            - name: Check deployment status
+      - name: Check deployment status
         run: |
           # Check if application deployment job succeeded
           if [ "${{ needs.application-deployment.result }}" != "success" ]; then
